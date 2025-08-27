@@ -1,0 +1,1700 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPTV Player v9 Silva - Atualizado</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.0/css/all.min.css" rel="stylesheet">
+  <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --primary-color: #00A848;
+      --primary-gradient: linear-gradient(135deg, #00A848, #00c851);
+      --bg-primary: #1f1f1f;
+      --bg-secondary: #252525;
+      --bg-tertiary: #303030;
+      --bg-quaternary: #404040;
+      --text-primary: #ffffff;
+      --text-secondary: #9CA3AF;
+      --text-tertiary: #D1D5DB;
+    }
+
+    /* Temas */
+    [data-theme="black"] {
+      --primary-color: #ffffff;
+      --primary-gradient: linear-gradient(135deg, #333333, #555555);
+      --bg-primary: #000000;
+      --bg-secondary: #111111; /* FUNDO PARA CANAIS,  FILMES E SERIES E RÁDIOS */
+      --bg-tertiary: #222222; /* FUNDO DA LISTA DE ITENS*/
+      --bg-quaternary: #333333;
+    }
+
+    [data-theme="claro"] {
+      --primary-color: #007bff;
+      --primary-gradient: linear-gradient(135deg, #007bff, #0056b3);
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --bg-quaternary: #dee2e6;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-tertiary: #495057;
+    }
+
+    [data-theme="azul"] {
+      --primary-color: #007bff;
+      --primary-gradient: linear-gradient(135deg, #007bff, #0056b3);
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --bg-quaternary: #30363d;
+    }
+
+    [data-theme="vermelho"] {
+      --primary-color: #dc3545;
+      --primary-gradient: linear-gradient(135deg, #dc3545, #c82333);
+      --bg-primary: #1a0d0d;
+      --bg-secondary: #2d1b1b;
+      --bg-tertiary: #3d2626;
+      --bg-quaternary: #4d3131;
+    }
+
+    [data-theme="verde"] {
+      --primary-color: #28a745;
+      --primary-gradient: linear-gradient(135deg, #28a745, #1e7e34);
+      --bg-primary: #0d1a0d;
+      --bg-secondary: #1b2d1b;
+      --bg-tertiary: #263d26;
+      --bg-quaternary: #314d31;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Header Styles - SEMPRE NO TOPO EM PAISAGEM */
+    .header {
+      background: var(--primary-gradient);
+      padding: 0.75rem 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      order: -1; /* Sempre no topo */
+    }
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      font-weight: 700;
+      color: white;
+    }
+    .header-buttons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 50%;
+      width: clamp(35px, 8vw, 40px);
+      height: clamp(35px, 8vw, 40px);
+      color: white;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+    }
+    .header-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: scale(1.1);
+      color: white;
+    }
+    
+    /* Video Player Styles */
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      background: #000;
+      overflow: hidden;
+    }
+    #videoPlayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Logo inside player */
+    .player-logo {
+      position: absolute;
+      bottom: 60px;
+      left: 15px;
+      width: 60px;
+      height: auto;
+      opacity: 0.7;
+      z-index: 100;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    /* NOVA ANIMAÇÃO DA LOGO */
+    .player-logo.animate-center {
+      bottom: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, 50%) scale(2);
+      opacity: 1;
+      z-index: 200;
+      transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .player-logo.animate-to-position {
+      bottom: 60px !important;
+      left: 15px !important;
+      transform: none;
+      opacity: 0.7;
+      z-index: 100;
+      transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .player-logo:hover {
+      opacity: 1;
+    }
+
+    /* Radio info overlay - MELHORADO */
+    .radio-info-overlay {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      max-width: 350px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .radio-info-overlay.visible {
+      display: flex;
+    }
+    .radio-logo-small {
+      width: 45px;
+      height: 45px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--primary-gradient);
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .radio-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .radio-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin: 0 0 4px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #ffffff;
+    }
+    .radio-frequency {
+      font-size: 0.8rem;
+      color: #ccc;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* Radio Visual Display - Nova visualização para rádios */
+    .radio-visual-display {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      z-index: 5; /* Reduzido para não esconder controles do player */
+    }
+    .radio-visual-display.active {
+      display: block;
+    }
+    
+    /* Background desfocado */
+    .radio-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: blur(20px);
+      transform: scale(1.1);
+      opacity: 0.4;
+      z-index: 6;
+    }
+    
+    /* Overlay escuro para melhor contraste */
+    .radio-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%; 
+      background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+      z-index: 7;
+    }
+    
+    /* Conteúdo principal da rádio */
+    .radio-main-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+      z-index: 8; /* Abaixo dos controles mas visível */
+      width: 90%;
+      max-width: 400px;
+    }
+    
+    /* Imagem da rádio com foco */
+    .radio-main-image {
+      width: clamp(50px, 5vw, 200px);
+      height: clamp(50px, 5vw, 200px);
+      border-radius: 20px;
+      object-fit: cover;
+      margin: 0 auto 1.5rem auto;
+      display: block;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 3px solid rgba(255,255,255,0.2);
+      animation: radioGlow 3s ease-in-out infinite alternate;
+    }
+    
+    @keyframes radioGlow {
+      0% { 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 rgba(var(--primary-color), 0.0);
+      }
+      100% { 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(var(--primary-color), 0.3);
+      }
+    }
+    
+    /* Informações da rádio */
+    .radio-main-info h3 {
+      font-size: clamp(1.2rem, 4vw, 2rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      line-height: 1.2;
+    }
+    
+    .radio-main-info p {
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
+      margin: 0 0 1rem 0;
+      opacity: 0.9;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    }
+    
+    /* Indicador de reprodução */
+    .radio-playing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(var(--primary-color), 0.2);
+      backdrop-filter: blur(10px);
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .radio-playing-indicator i {
+      animation: pulse 2s infinite;
+      color: var(--primary-color);
+    }
+    
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #000000, #1a1a1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+    }
+    .video-placeholder i {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+    
+    /* Custom Controls */
+    .custom-controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      display: none;
+      justify-content: center;
+      gap: 10px;
+      z-index: 150;
+    }
+    .control-btn {
+      background: rgba(0,0,0,0.7);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.8rem;
+    }
+    .control-btn:hover {
+      background: rgba(0,0,0,0.9);
+      transform: scale(1.05);
+    }
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* GUIAS DE NAVEGAÇÃO PRINCIPAIS */
+    .main-nav {
+      background-color: var(--bg-secondary);
+      padding: 0.5rem 0;
+      border-bottom: 2px solid var(--bg-quaternary);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .main-nav::-webkit-scrollbar {
+      display: none;
+    }
+    .main-nav .nav-tabs {
+      border: none;
+      justify-content: center;
+      flex-wrap: nowrap;
+      min-width: max-content;
+    }
+    .main-nav .nav-link {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 4vw, 2rem);
+      font-weight: 600;
+      font-size: clamp(0.8rem, 3vw, 1.1rem);
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    .main-nav .nav-link:hover {
+      color: var(--text-tertiary);
+      background: rgba(255,255,255,0.1);
+    }
+    .main-nav .nav-link.active {
+      color: var(--primary-color);
+      background: rgba(220, 20, 60, 0.1);
+      border-bottom: 3px solid var(--primary-color);
+    }
+    
+    /* ESTILOS DA BARRA DE GUIAS*/
+    .tab-bar {
+      background-color: var(--bg-tertiary);
+      padding: 0.5rem 0;
+      border-bottom: 2px solid var(--bg-quaternary);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .tab-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1rem;
+      min-width: max-content;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .tab-btn:hover {
+      color: var(--text-tertiary);
+      background: rgba(255,255,255,0.1);
+    }
+    .tab-btn.active {
+      color: var(--primary-color);
+      background: rgba(220, 20, 60, 0.1);
+    }
+
+    /* Radio Category Badge */
+    .radio-category-badge {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: var(--primary-gradient);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .content-list {
+      background-color: var(--bg-tertiary);
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #555 var(--bg-tertiary);
+    }
+    .content-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .content-list::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+    .content-list::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 3px;
+    }
+    
+    .content-item {
+      display: flex;
+      align-items: center;
+      padding: clamp(0.5rem, 2vw, 1rem);
+      border-bottom: 1px solid var(--bg-quaternary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .content-item:hover {
+      background-color: var(--bg-quaternary);
+      transform: translateX(5px);
+    }
+    .content-item.playing {
+      background: linear-gradient(90deg, rgba(220, 20, 60, 0.2), transparent);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .content-avatar {
+      width: clamp(40px, 8vw, 50px);
+      height: clamp(40px, 8vw, 50px);
+      border-radius: 8px;
+      margin-right: clamp(0.5rem, 2vw, 1rem);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .content-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .content-name {
+      font-weight: 600;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      margin: 0 0 0.25rem 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+    
+    .content-details {
+      font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+      color: var(--text-secondary);
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .playing-indicator {
+      color: var(--primary-color);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: absolute;
+      right: 50px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .favorite-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-left: 0.5rem;
+    }
+    .favorite-btn:hover {
+      color: #ff6b6b;
+      transform: scale(1.1);
+    }
+    .favorite-btn.active {
+      color: #ff6b6b;
+    }
+    
+    /* Progress Indicator */
+    .progress-indicator {
+      background: var(--primary-color);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    /* ... resto dos estilos do arquivo original ... */
+    /* Adicionando os demais estilos necessários */
+
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .video-section {
+      flex: 1;
+    }
+
+    .content-section-landscape {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    @media (min-width: 768px) {
+      .main-content {
+        flex-direction: row;
+      }
+      
+      .video-section {
+        flex: 2;
+        margin-right: 1rem;
+      }
+      
+      .content-section-landscape {
+        flex: 1;
+        min-width: 300px;
+      }
+    }
+
+    /* Loading spinner */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--bg-quaternary);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Theme Modal */
+    .theme-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-content {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .theme-option {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .theme-option:hover {
+      transform: scale(1.05);
+      border-color: var(--primary-color);
+    }
+
+    .theme-verde { background: linear-gradient(135deg, #28a745, #1e7e34); }
+    .theme-black { background: linear-gradient(135deg, #333333, #555555); }
+    .theme-claro { background: linear-gradient(135deg, #007bff, #0056b3); }
+    .theme-azul { background: linear-gradient(135deg, #007bff, #0056b3); }
+    .theme-vermelho { background: linear-gradient(135deg, #dc3545, #c82333); }
+
+    /* Responsive */
+    @media (max-width: 767px) {
+      .content-list {
+        max-height: 70vh;
+      }
+      
+      .player-logo {
+        width: 35px;
+        bottom: 15px;
+        left: 5px;
+      }
+      
+      .radio-info-overlay {
+        top: 10px;
+        left: 10px;
+        max-width: 250px;
+        padding: 8px 10px;
+      }
+      
+      .radio-logo-small {
+        width: 36px;
+        height: 36px;
+      }
+      
+      .radio-name {
+        font-size: 0.8rem;
+      }
+      
+      .radio-frequency {
+        font-size: 0.7rem;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 500px) and (max-width: 767px) {
+      .content-list {
+        max-height: 35vh;
+      }
+      
+      .custom-controls {
+        bottom: 5px;
+      }
+      
+      .player-logo {
+        bottom: 35px;
+      }
+      
+      .radio-info-overlay {
+        top: 8px;
+        left: 8px;
+      }
+    }
+  </style>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="/iptv-player-v9-silva.html" />
+  <meta name="description" content="Assista listas IPTV direto no navegador com o IPTV Player v9 Silva Atualizado. Rápido, seguro e fácil de usar. Rádios organizadas por categorias." />
+  <meta property="og:title" content="IPTV Player v9 Silva Atualizado — Player IPTV no Navegador" />
+  <meta property="og:description" content="Assista listas IPTV direto no navegador com o IPTV Player v9 Silva Atualizado. Rápido, seguro e fácil de usar. Rádios organizadas por categorias." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/favicon.ico" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="IPTV Player v9 Silva Atualizado — Player IPTV no Navegador" />
+  <meta name="twitter:description" content="Assista listas IPTV direto no navegador com o IPTV Player v9 Silva Atualizado. Rápido, seguro e fácil de usar. Rádios organizadas por categorias." />
+  <meta name="theme-color" content="#00A848" />
+
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "WebApplication", "name": "IPTV Player v9 Silva Atualizado", "url": "/iptv-player-v9-silva.html", "applicationCategory": "EntertainmentApplication", "operatingSystem": "Web", "description": "Player IPTV direto no navegador para assistir listas M3U/M3U8 com rapidez e segurança. Rádios organizadas por categorias.", "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" } }
+  </script>
+</head>
+<body data-theme="verde">
+  <div class="app-container">
+    <!-- Header - SEMPRE NO TOPO -->
+    <div class="header d-flex justify-content-between align-items-center">
+      <h1><i class="fas fa-fire me-2"></i>IPTV Player v9 Silva</h1>
+      <div class="header-buttons">
+        <button class="header-btn" id="themeBtn" title="Temas">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="header-btn" id="shareBtn" title="Compartilhar">
+          <i class="fas fa-share-alt"></i>
+        </button>
+        <button class="header-btn" onclick="document.documentElement.requestFullscreen()" title="Tela Cheia">
+          <i class="fas fa-expand"></i>
+        </button>
+        <button class="header-btn" id="searchBtn" title="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
+        <button class="header-btn" id="addPlaylistBtn" title="Adicionar Playlist">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="main-content">
+      <!-- Video Section -->
+      <div class="video-section">
+        <!-- Video Player Container -->
+        <div class="video-container">
+          <video id="videoPlayer" class="video-js" controls preload="auto"></video>
+
+          <!-- Logo padrão dentro do player no canto inferior esquerdo -->
+          <img src="https://i.ibb.co/wYHRkPj/Text-Toos-Apk.png" alt="Logo Player" class="player-logo" id="playerLogo">
+          
+          <!-- Radio info overlay - MELHORADO COM LOGO -->
+          <div class="radio-info-overlay" id="radioInfoOverlay">
+            <img id="radioLogoSmall" src="" alt="Radio Logo" class="radio-logo-small">
+            <div class="radio-details">
+              <p class="radio-name" id="radioNameOverlay"></p>
+              <p class="radio-frequency" id="radioFrequencyOverlay"></p>
+            </div>
+          </div>
+
+          <!-- Radio Visual Display - Nova visualização para rádios -->
+          <div class="radio-visual-display" id="radioVisualDisplay">
+            <!-- Background desfocado -->
+            <div class="radio-background" id="radioBackground"></div>
+            
+            <!-- Overlay escuro -->
+            <div class="radio-overlay"></div>
+            
+            <!-- Conteúdo principal -->
+            <div class="radio-main-content">
+              <img id="radioMainImage" src="" alt="Radio Logo" class="radio-main-image">
+              <div class="radio-main-info">
+                <h3 id="radioMainName">Nome da Rádio</h3>
+                <p id="radioMainFrequency">Frequência</p>
+                <div class="radio-playing-indicator">
+                  <i class="fas fa-play"></i>
+                  <span>Reproduzindo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="video-placeholder" id="videoPlaceholder">
+            <i class="fas fa-play-circle"></i>
+            <h5>Selecione um conteúdo para assistir</h5>
+          </div>
+
+          <!-- Custom Controls -->
+          <div class="custom-controls" id="customControls">
+            <button class="control-btn" id="episodeListBtn">
+              <i class="fas fa-list"></i> Episódios
+            </button>
+            <button class="control-btn" id="prevEpisodeBtn">
+              <i class="fas fa-step-backward"></i> Anterior
+            </button>
+            <button class="control-btn" id="nextEpisodeBtn">
+              Próximo <i class="fas fa-step-forward"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Main Navigation -->
+        <div class="main-nav">
+          <ul class="nav nav-tabs d-flex justify-content-center">
+            <li class="nav-item">
+              <button class="nav-link" data-content="channels">
+                <i class="fas fa-broadcast-tower me-1"></i>Canais
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="movies">
+                <i class="fas fa-film me-1"></i>Filmes
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="series">
+                <i class="fas fa-tv me-1"></i>Séries
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link active" data-content="radios">
+                <i class="fas fa-radio me-1"></i>Rádios
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="favorites">
+                <i class="fas fa-heart me-1"></i>Favoritos
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Content Section -->
+      <div class="content-section-landscape">
+        <!-- Channels Section -->
+        <div id="channelsSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="channelTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="channelList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando canais...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Movies Section -->
+        <div id="moviesSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="movieTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="movieList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando filmes...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Series Section -->
+        <div id="seriesSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="seriesTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="seriesList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando séries...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Radios Section - MELHORADO COM CATEGORIAS ORGANIZADAS -->
+        <div id="radiosSection" class="content-section active">
+          <div class="tab-bar">
+            <div class="tab-nav" id="radioTabNav">
+              <button class="tab-btn active" data-category="all">
+                <i class="fas fa-globe me-1"></i>Todas
+              </button>
+              <button class="tab-btn" data-category="nacional">
+                <i class="fas fa-flag me-1"></i>Nacional
+              </button>
+              <button class="tab-btn" data-category="ce">
+                <i class="fas fa-map-marker-alt me-1"></i>Ceará
+              </button>
+              <button class="tab-btn" data-category="ma">
+                <i class="fas fa-map-marker-alt me-1"></i>Maranhão
+              </button>
+              <button class="tab-btn" data-category="mg">
+                <i class="fas fa-map-marker-alt me-1"></i>Minas Gerais
+              </button>
+              <button class="tab-btn" data-category="pa">
+                <i class="fas fa-map-marker-alt me-1"></i>Pará
+              </button>
+              <button class="tab-btn" data-category="pi">
+                <i class="fas fa-map-marker-alt me-1"></i>Piauí
+              </button>
+              <button class="tab-btn" data-category="rj">
+                <i class="fas fa-map-marker-alt me-1"></i>Rio de Janeiro
+              </button>
+              <button class="tab-btn" data-category="sp">
+                <i class="fas fa-map-marker-alt me-1"></i>São Paulo
+              </button>
+            </div>
+          </div>
+          <div class="content-list" id="radioList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando rádios...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favoritesSection" class="content-section">
+          <div class="favorites-header">
+            <h4><i class="fas fa-heart me-2"></i>Meus Favoritos</h4>
+          </div>
+          <div class="content-list" id="favoritesList">
+            <div class="text-center p-4">
+              <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum favorito ainda</p>
+              <p class="text-muted">Toque no ❤️ para adicionar!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Selector Modal -->
+  <div class="theme-modal" id="themeModal">
+    <div class="theme-content">
+      <h4 class="mb-3">Escolher Tema</h4>
+      <div class="theme-grid">
+        <div class="theme-option theme-verde" data-theme="verde">
+          <i class="fas fa-leaf"></i>
+          <div>Verde</div>
+        </div>
+        <div class="theme-option theme-black" data-theme="black">
+          <i class="fas fa-moon"></i>
+          <div>Escuro</div>
+        </div>
+        <div class="theme-option theme-claro" data-theme="claro">
+          <i class="fas fa-sun"></i>
+          <div>Claro</div>
+        </div>
+        <div class="theme-option theme-azul" data-theme="azul">
+          <i class="fas fa-water"></i>
+          <div>Azul</div>
+        </div>
+        <div class="theme-option theme-vermelho" data-theme="vermelho">
+          <i class="fas fa-fire"></i>
+          <div>Vermelho</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary mt-3" onclick="closeThemeModal()">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Video.js -->
+  <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+
+  <script>
+    // Theme functions
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('iptv-theme') || 'verde';
+      document.body.setAttribute('data-theme', savedTheme);
+    }
+
+    function saveTheme(theme) {
+      localStorage.setItem('iptv-theme', theme);
+      document.body.setAttribute('data-theme', theme);
+    }
+
+    function closeThemeModal() {
+      document.getElementById('themeModal').style.display = 'none';
+    }
+
+    // Cache and storage utilities
+    class CacheManager {
+      constructor() {
+        this.cache = new Map();
+        this.cacheExpiration = 30 * 60 * 1000; // 30 minutes
+      }
+
+      set(key, data) {
+        this.cache.set(key, {
+          data: data,
+          timestamp: Date.now()
+        });
+      }
+
+      get(key) {
+        const cached = this.cache.get(key);
+        if (!cached) return null;
+
+        if (Date.now() - cached.timestamp > this.cacheExpiration) {
+          this.cache.delete(key);
+          return null;
+        }
+
+        return cached.data;
+      }
+
+      clear() {
+        this.cache.clear();
+      }
+    }
+
+    class FavoritesManager {
+      constructor() {
+        this.favorites = new Set(JSON.parse(localStorage.getItem('iptv-favorites') || '[]'));
+      }
+
+      add(id) {
+        this.favorites.add(id);
+        this.save();
+      }
+
+      remove(id) {
+        this.favorites.delete(id);
+        this.save();
+      }
+
+      has(id) {
+        return this.favorites.has(id);
+      }
+
+      toggle(id) {
+        if (this.has(id)) {
+          this.remove(id);
+          return false;
+        } else {
+          this.add(id);
+          return true;
+        }
+      }
+
+      save() {
+        localStorage.setItem('iptv-favorites', JSON.stringify([...this.favorites]));
+      }
+
+      getAll() {
+        return [...this.favorites];
+      }
+    }
+
+    class IPTVApp {
+      constructor() {
+        this.channels = [];
+        this.movies = [];
+        this.series = [];
+        this.radios = [];
+        this.episodes = [];
+        this.currentChannel = null;
+        this.currentMovie = null;
+        this.currentSeries = null;
+        this.currentEpisode = null;
+        this.currentRadio = null;
+        
+        this.cache = new CacheManager();
+        this.favorites = new FavoritesManager();
+        this.player = null;
+        
+        this.config = {
+          server: 'http://c.maintech.top',
+          username: 'IPTVBR',
+          password: 'IPTVBR'
+        };
+        
+        this.initRadios();
+        this.init();
+      }
+
+      async initRadios() {
+        // Rádios nacionais (alcance nacional)
+        const radiosNacionais = [
+          {
+            id: 'radio_nacional_1',
+            name: 'Rádio Nacional AM 980',
+            type: 'radio',
+            url: 'https://streamtheworld.com/nacional',
+            icon: 'https://img.radios.com.br/radio/lg/nacional.png',
+            city: 'Nacional',
+            state: 'BR',
+            category: 'nacional',
+            frequency: '980 AM',
+            letter: 'N'
+          },
+          {
+            id: 'radio_jovem_pan_nacional',
+            name: 'Jovem Pan FM Nacional',
+            type: 'radio',
+            url: 'https://streamtheworld.com/jovempan',
+            icon: 'https://img.radios.com.br/radio/lg/jovempan.png',
+            city: 'Nacional',
+            state: 'BR',
+            category: 'nacional',
+            frequency: 'Nacional FM',
+            letter: 'J'
+          },
+          {
+            id: 'radio_globo_nacional',
+            name: 'Rádio Globo Nacional',
+            type: 'radio',
+            url: 'https://streamtheworld.com/globo',
+            icon: 'https://img.radios.com.br/radio/lg/globo.png',
+            city: 'Nacional',
+            state: 'BR',
+            category: 'nacional',
+            frequency: 'Nacional',
+            letter: 'G'
+          }
+        ];
+
+        // Rádios dos estados (mantendo as existentes do JSON)
+        try {
+          const response = await fetch('https://raw.githubusercontent.com/CaioCon/radiosiptvplayer/refs/heads/main/Rádios');
+          if (response.ok) {
+            const extraRadios = await response.json();
+            if (Array.isArray(extraRadios)) {
+              this.radios = [...radiosNacionais, ...extraRadios];
+            } else {
+              this.radios = [...radiosNacionais];
+            }
+          } else {
+            this.radios = [...radiosNacionais];
+          }
+        } catch (error) {
+          console.error('Erro ao carregar rádios:', error);
+          this.radios = [...radiosNacionais];
+        }
+
+        console.log(`Total de ${this.radios.length} rádios carregadas`);
+      }
+
+      async init() {
+        try {
+          this.setupPlayer();
+          this.setupEventListeners();
+          this.renderRadios(); // Inicia mostrando rádios
+          this.showSuccess('IPTV Player carregado com sucesso!');
+        } catch (error) {
+          console.error('Erro ao inicializar:', error);
+          this.showError('Erro ao carregar o player');
+        }
+      }
+
+      setupPlayer() {
+        const videoElement = document.getElementById('videoPlayer');
+        this.player = videojs(videoElement, {
+          responsive: true,
+          fluid: true,
+          playbackRates: [0.5, 1, 1.25, 1.5, 2],
+          controls: true,
+          preload: 'auto'
+        });
+      }
+
+      setupEventListeners() {
+        // Theme selector
+        document.getElementById('themeBtn').addEventListener('click', () => {
+          document.getElementById('themeModal').style.display = 'flex';
+        });
+
+        // Theme options
+        document.querySelectorAll('.theme-option').forEach(option => {
+          option.addEventListener('click', () => {
+            const theme = option.getAttribute('data-theme');
+            saveTheme(theme);
+            closeThemeModal();
+          });
+        });
+
+        // Main navigation
+        document.querySelectorAll('[data-content]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.switchContent(btn.getAttribute('data-content'));
+          });
+        });
+
+        // Radio category navigation
+        document.querySelectorAll('#radioTabNav .tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.switchRadioCategory(btn.getAttribute('data-category'));
+          });
+        });
+
+        // Share button
+        document.getElementById('shareBtn').addEventListener('click', () => {
+          this.shareApp();
+        });
+      }
+
+      switchContent(contentType) {
+        // Update active nav button
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.remove('active');
+        });
+        document.querySelector(`[data-content="${contentType}"]`).classList.add('active');
+
+        // Show/hide content sections
+        document.querySelectorAll('.content-section').forEach(section => {
+          section.classList.remove('active');
+        });
+        document.getElementById(`${contentType}Section`).classList.add('active');
+
+        // Load content based on type
+        switch (contentType) {
+          case 'channels':
+            this.renderChannels();
+            break;
+          case 'movies':
+            this.renderMovies();
+            break;
+          case 'series':
+            this.renderSeries();
+            break;
+          case 'radios':
+            this.renderRadios();
+            break;
+          case 'favorites':
+            this.renderFavorites();
+            break;
+        }
+      }
+
+      switchRadioCategory(category) {
+        // Update active tab button
+        document.querySelectorAll('#radioTabNav .tab-btn').forEach(btn => {
+          btn.classList.remove('active');
+        });
+        document.querySelector(`[data-category="${category}"]`).classList.add('active');
+
+        // Filter and render radios
+        this.renderRadios(category);
+      }
+
+      renderRadios(category = 'all') {
+        const radioList = document.getElementById('radioList');
+        
+        let filteredRadios = this.radios;
+        if (category !== 'all') {
+          filteredRadios = this.radios.filter(radio => radio.category === category);
+        }
+
+        if (filteredRadios.length === 0) {
+          radioList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-radio fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhuma rádio encontrada nesta categoria</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Organizar rádios alfabeticamente por nome
+        const sortedRadios = filteredRadios.sort((a, b) => {
+          return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+        });
+
+        radioList.innerHTML = '';
+        sortedRadios.forEach(radio => {
+          const item = this.createRadioItem(radio);
+          radioList.appendChild(item);
+        });
+      }
+
+      createRadioItem(radio) {
+        const item = document.createElement('div');
+        item.className = 'content-item';
+        
+        const isPlaying = this.currentRadio?.id === radio.id;
+        if (isPlaying) {
+          item.classList.add('playing');
+        }
+
+        const avatarStyle = radio.icon ? 
+          `background-image: url('${radio.icon}'); background-size: cover; background-position: center;` : '';
+
+        let details = radio.frequency || 'Rádio';
+        if (radio.city) details += ` • ${radio.city}`;
+        if (isPlaying) details = 'Tocando agora';
+
+        // Estado badge
+        const stateBadge = radio.state !== 'BR' ? `
+          <div class="radio-category-badge">${radio.state}</div>
+        ` : '';
+
+        item.innerHTML = `
+          <div class="content-avatar" style="${avatarStyle}">
+            ${!radio.icon ? radio.letter || radio.name.charAt(0) : ''}
+          </div>
+          <div class="content-info">
+            <div class="content-name">${radio.name}</div>
+            <div class="content-details">
+              ${details}
+            </div>
+          </div>
+          ${stateBadge}
+          ${isPlaying ? '<div class="playing-indicator">Tocando</div>' : ''}
+          <button class="favorite-btn ${this.favorites.has(radio.id) ? 'active' : ''}" 
+                  data-content-id="${radio.id}">
+            <i class="fas fa-heart"></i>
+          </button>
+        `;
+
+        // Radio click event
+        item.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('favorite-btn') && !e.target.closest('.favorite-btn')) {
+            this.playRadio(radio);
+          }
+        });
+
+        // Favorite button event
+        const favoriteBtn = item.querySelector('.favorite-btn');
+        favoriteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isActive = this.favorites.toggle(radio.id);
+          favoriteBtn.classList.toggle('active', isActive);
+          this.showSuccess(isActive ? 'Adicionado aos favoritos!' : 'Removido dos favoritos!');
+        });
+
+        return item;
+      }
+
+      animateLogo() {
+        const logo = document.getElementById('playerLogo');
+        
+        // Reset any existing classes
+        logo.classList.remove('animate-center', 'animate-to-position');
+        
+        // Force reflow
+        logo.offsetHeight;
+        
+        // Animate to center
+        logo.classList.add('animate-center');
+        
+        // After 1.5 seconds, animate to final position
+        setTimeout(() => {
+          logo.classList.remove('animate-center');
+          logo.classList.add('animate-to-position');
+          
+          // Remove the class after animation completes
+          setTimeout(() => {
+            logo.classList.remove('animate-to-position');
+          }, 1200);
+        }, 1500);
+      }
+
+      playRadio(radio) {
+        try {
+          this.animateLogo();
+          this.currentRadio = radio;
+          this.currentChannel = null;
+          this.currentMovie = null;
+          this.currentSeries = null;
+          this.currentEpisode = null;
+
+          // Setup player for radio
+          this.setupPlayerForRadio(radio.url);
+
+          this.player.ready(() => {
+            this.player.play();
+          });
+
+          document.getElementById('videoPlaceholder').style.display = 'none';
+          
+          // Show radio visual display
+          this.showRadioVisualDisplay(radio);
+          
+          this.renderRadios(); // Refresh to show playing state
+          this.hideCustomControls();
+        } catch (error) {
+          console.error('Erro ao reproduzir rádio:', error);
+          this.showError('Erro ao reproduzir rádio');
+        }
+      }
+
+      setupPlayerForRadio(url) {
+        this.player.pause();
+        this.player.reset();
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(this.player.el().querySelector('video'));
+        } else if (this.player.el().querySelector('video').canPlayType('application/vnd.apple.mpegurl')) {
+          this.player.src(url);
+        } else {
+          this.player.src(url);
+        }
+      }
+
+      showRadioVisualDisplay(radio) {
+        const visualDisplay = document.getElementById('radioVisualDisplay');
+        const background = document.getElementById('radioBackground');
+        const mainImage = document.getElementById('radioMainImage');
+        const mainName = document.getElementById('radioMainName');
+        const mainFrequency = document.getElementById('radioMainFrequency');
+
+        // Set radio information
+        mainName.textContent = radio.name;
+        mainFrequency.textContent = `${radio.frequency}${radio.city ? ' • ' + radio.city : ''}`;
+
+        // Set images (both background and main)
+        if (radio.icon) {
+          background.style.backgroundImage = `url(${radio.icon})`;
+          mainImage.src = radio.icon;
+          mainImage.alt = radio.name;
+          
+          // Handle image loading
+          mainImage.onerror = function() {
+            // Fallback to gradient background
+            background.style.backgroundImage = 'linear-gradient(135deg, var(--primary-color), var(--bg-secondary))';
+            this.style.display = 'none';
+          };
+          mainImage.onload = function() {
+            this.style.display = 'block';
+          };
+        } else {
+          // No icon available - use gradient background
+          background.style.backgroundImage = 'linear-gradient(135deg, var(--primary-color), var(--bg-secondary))';
+          mainImage.style.display = 'none';
+        }
+
+        // Show the visual display
+        visualDisplay.classList.add('active');
+
+        // Also show the small overlay for a few seconds as additional feedback
+        this.showRadioInfo(radio);
+      }
+
+      showRadioInfo(radio) {
+        const overlay = document.getElementById('radioInfoOverlay');
+        const logoSmall = document.getElementById('radioLogoSmall');
+        const nameOverlay = document.getElementById('radioNameOverlay');
+        const frequencyOverlay = document.getElementById('radioFrequencyOverlay');
+
+        // Set radio info
+        logoSmall.src = radio.icon || '';
+        logoSmall.alt = radio.name;
+        logoSmall.onerror = function() {
+          this.style.display = 'none';
+        };
+        logoSmall.onload = function() {
+          this.style.display = 'block';
+        };
+        
+        nameOverlay.textContent = radio.name;
+        frequencyOverlay.textContent = `${radio.frequency}${radio.city ? ' • ' + radio.city : ''}`;
+
+        // Show overlay
+        overlay.classList.add('visible');
+
+        // Hide after 8 seconds
+        setTimeout(() => {
+          overlay.classList.remove('visible');
+        }, 8000);
+      }
+
+      hideRadioVisualDisplay() {
+        const visualDisplay = document.getElementById('radioVisualDisplay');
+        visualDisplay.classList.remove('active');
+      }
+
+      hideCustomControls() {
+        document.getElementById('customControls').style.display = 'none';
+      }
+
+      renderChannels() {
+        // Placeholder for channels functionality
+        document.getElementById('channelList').innerHTML = `
+          <div class="text-center p-4">
+            <i class="fas fa-broadcast-tower fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Funcionalidade de canais em desenvolvimento</p>
+          </div>
+        `;
+      }
+
+      renderMovies() {
+        // Placeholder for movies functionality
+        document.getElementById('movieList').innerHTML = `
+          <div class="text-center p-4">
+            <i class="fas fa-film fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Funcionalidade de filmes em desenvolvimento</p>
+          </div>
+        `;
+      }
+
+      renderSeries() {
+        // Placeholder for series functionality
+        document.getElementById('seriesList').innerHTML = `
+          <div class="text-center p-4">
+            <i class="fas fa-tv fa-3x text-muted mb-3"></i>
+            <p class="text-muted">Funcionalidade de séries em desenvolvimento</p>
+          </div>
+        `;
+      }
+
+      renderFavorites() {
+        const favoritesList = document.getElementById('favoritesList');
+        const favoriteIds = this.favorites.getAll();
+        
+        if (favoriteIds.length === 0) {
+          favoritesList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum favorito ainda</p>
+              <p class="text-muted">Toque no ❤️ para adicionar!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Get favorite radios
+        const favoriteRadios = this.radios.filter(radio => favoriteIds.includes(radio.id));
+        
+        favoritesList.innerHTML = '';
+        favoriteRadios.forEach(radio => {
+          const item = this.createRadioItem(radio);
+          favoritesList.appendChild(item);
+        });
+      }
+
+      shareApp() {
+        const shareUrl = window.location.href;
+        
+        if (navigator.share) {
+          navigator.share({
+            title: 'IPTV Player v9 Silva - Rádios Organizadas',
+            text: 'Escute rádios brasileiras organizadas por categorias',
+            url: shareUrl
+          }).catch(console.error);
+        } else {
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            this.showSuccess('Link copiado para a área de transferência!');
+          }).catch(() => {
+            this.showError('Não foi possível copiar o link');
+          });
+        }
+      }
+
+      showError(message) {
+        this.showAlert('Erro', message, 'error');
+      }
+
+      showSuccess(message) {
+        this.showAlert('Sucesso', message, 'success');
+      }
+
+      showAlert(title, message, type = 'info') {
+        // Remove existing alerts
+        document.querySelectorAll('.custom-alert, .alert-backdrop').forEach(el => el.remove());
+
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'alert-backdrop';
+        backdrop.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          z-index: 9998;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+
+        // Create alert
+        const alert = document.createElement('div');
+        alert.className = 'custom-alert';
+        alert.style.cssText = `
+          background: var(--bg-tertiary);
+          color: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 90%;
+          width: 400px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        `;
+
+        const iconColor = type === 'error' ? '#EF4444' : type === 'success' ? '#10B981' : '#6B7280';
+        const iconName = type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle';
+
+        alert.innerHTML = `
+          <i class="fas fa-${iconName} fa-3x mb-3" style="color: ${iconColor}"></i>
+          <h5 class="mb-3">${title}</h5>
+          <p class="mb-4">${message}</p>
+          <button class="btn btn-${type === 'error' ? 'danger' : 'primary'}" onclick="this.closest('.alert-backdrop').remove()">
+            OK
+          </button>
+        `;
+
+        backdrop.appendChild(alert);
+        document.body.appendChild(backdrop);
+
+        // Auto remove after 5 seconds for success messages
+        if (type === 'success') {
+          setTimeout(() => {
+            if (backdrop.parentNode) {
+              backdrop.remove();
+            }
+          }, 3000);
+        }
+      }
+    }
+
+    // Initialize app when DOM is loaded
+    let iptvApp;
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTheme();
+      iptvApp = new IPTVApp();
+    });
+  </script>
+
+</body>
+</html>
