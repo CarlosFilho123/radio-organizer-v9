@@ -477,6 +477,54 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    /* Category Header Styles */
+    .category-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Radio Number for Alphabetical Order */
+    .radio-number {
+      display: inline-block;
+      min-width: 30px;
+      font-family: 'Courier New', monospace;
+      font-weight: 600;
+    }
+
+    /* Alphabetical Order Indicator */
+    .alphabetical-indicator {
+      position: absolute;
+      bottom: 5px;
+      left: 5px;
+      background: rgba(0,0,0,0.7);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 8px;
+      font-size: 0.6rem;
+      font-weight: 600;
+    }
+
+    /* Enhanced Playing Indicator */
+    .playing-indicator {
+      color: var(--primary-color);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: absolute;
+      right: 50px;
+      top: 50%;
+      transform: translateY(-50%);
+      animation: pulse 2s infinite;
+      background: rgba(255,255,255,0.1);
+      padding: 2px 6px;
+      border-radius: 8px;
+      backdrop-filter: blur(4px);
     }
     
     .content-list {
@@ -1328,24 +1376,154 @@
             <div class="text-center p-4">
               <i class="fas fa-radio fa-3x text-muted mb-3"></i>
               <p class="text-muted">Nenhuma rádio encontrada nesta categoria</p>
+              <p class="text-muted text-small">Categoria: ${category.toUpperCase()}</p>
             </div>
           `;
           return;
         }
 
-        // Organizar rádios alfabeticamente por nome
+        // ORGANIZAR RÁDIOS EM ORDEM ALFABÉTICA POR ESTADO/CATEGORIA
         const sortedRadios = filteredRadios.sort((a, b) => {
-          return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+          // Primeiro ordenar por estado/categoria, depois por nome
+          if (a.category !== b.category) {
+            return a.category.localeCompare(b.category, 'pt-BR');
+          }
+          // Dentro do mesmo estado, ordenar alfabeticamente por nome
+          return a.name.localeCompare(b.name, 'pt-BR', { 
+            sensitivity: 'base',
+            numeric: true,
+            ignorePunctuation: true 
+          });
         });
 
+        // Limpar lista e adicionar cabeçalho da categoria se não for "todas"
         radioList.innerHTML = '';
-        sortedRadios.forEach(radio => {
-          const item = this.createRadioItem(radio);
+        
+        if (category !== 'all') {
+          const categoryHeader = document.createElement('div');
+          categoryHeader.className = 'category-header p-3 mb-2';
+          categoryHeader.style.cssText = `
+            background: var(--primary-gradient);
+            color: white;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            margin-bottom: 1rem;
+          `;
+          
+          const categoryNames = {
+            'nacional': '🇧🇷 RÁDIOS NACIONAIS',
+            'ce': '🏖️ CEARÁ',
+            'ma': '🌴 MARANHÃO', 
+            'mg': '⛰️ MINAS GERAIS',
+            'pa': '🌳 PARÁ',
+            'pi': '🌵 PIAUÍ',
+            'rj': '🏖️ RIO DE JANEIRO',
+            'sp': '🏙️ SÃO PAULO'
+          };
+          
+          categoryHeader.innerHTML = `
+            <i class="fas fa-radio me-2"></i>
+            ${categoryNames[category] || category.toUpperCase()}
+            <small class="d-block mt-1">${sortedRadios.length} rádio${sortedRadios.length !== 1 ? 's' : ''} disponível${sortedRadios.length !== 1 ? 'is' : ''}</small>
+          `;
+          radioList.appendChild(categoryHeader);
+        }
+
+        // Adicionar rádios ordenadas alfabeticamente
+        sortedRadios.forEach((radio, index) => {
+          const item = this.createRadioItem(radio, index + 1);
           radioList.appendChild(item);
         });
+
+        // Mostrar estatísticas no console para debug
+        console.log(`📻 Categoria: ${category.toUpperCase()} - ${sortedRadios.length} rádios carregadas em ordem alfabética`);
+        
+        // Se for "todas", agrupar por estado e mostrar
+        if (category === 'all') {
+          this.showAllRadiosGrouped();
+        }
       }
 
-      createRadioItem(radio) {
+      showAllRadiosGrouped() {
+        const radioList = document.getElementById('radioList');
+        radioList.innerHTML = '';
+
+        // Agrupar rádios por categoria/estado
+        const radiosByCategory = {
+          'nacional': [],
+          'ce': [],
+          'ma': [],
+          'mg': [],
+          'pa': [],
+          'pi': [],
+          'rj': [],
+          'sp': []
+        };
+
+        // Organizar rádios por categoria
+        this.radios.forEach(radio => {
+          if (radiosByCategory[radio.category]) {
+            radiosByCategory[radio.category].push(radio);
+          }
+        });
+
+        // Ordenar cada categoria alfabeticamente
+        Object.keys(radiosByCategory).forEach(category => {
+          radiosByCategory[category].sort((a, b) => {
+            return a.name.localeCompare(b.name, 'pt-BR', { 
+              sensitivity: 'base',
+              numeric: true,
+              ignorePunctuation: true 
+            });
+          });
+        });
+
+        const categoryNames = {
+          'nacional': '🇧🇷 RÁDIOS NACIONAIS',
+          'ce': '🏖️ CEARÁ',
+          'ma': '🌴 MARANHÃO', 
+          'mg': '⛰️ MINAS GERAIS',
+          'pa': '🌳 PARÁ',
+          'pi': '🌵 PIAUÍ',
+          'rj': '🏖️ RIO DE JANEIRO',
+          'sp': '🏙️ SÃO PAULO'
+        };
+
+        // Renderizar cada categoria com suas rádios em ordem alfabética
+        Object.keys(radiosByCategory).forEach(category => {
+          const radios = radiosByCategory[category];
+          if (radios.length > 0) {
+            // Cabeçalho da categoria
+            const categoryHeader = document.createElement('div');
+            categoryHeader.className = 'category-header p-2 mb-2';
+            categoryHeader.style.cssText = `
+              background: var(--primary-gradient);
+              color: white;
+              border-radius: 8px;
+              text-align: center;
+              font-weight: 600;
+              margin: 1rem 0 0.5rem 0;
+              font-size: 0.9rem;
+            `;
+            categoryHeader.innerHTML = `
+              ${categoryNames[category] || category.toUpperCase()}
+              <small class="d-block" style="font-size: 0.7rem; opacity: 0.9;">${radios.length} rádio${radios.length !== 1 ? 's' : ''}</small>
+            `;
+            radioList.appendChild(categoryHeader);
+
+            // Rádios da categoria em ordem alfabética
+            radios.forEach((radio, index) => {
+              const item = this.createRadioItem(radio, index + 1);
+              radioList.appendChild(item);
+            });
+          }
+        });
+
+        console.log('📻 Todas as rádios exibidas agrupadas por estado em ordem alfabética');
+      }
+
+      createRadioItem(radio, index = null) {
         const item = document.createElement('div');
         item.className = 'content-item';
         
@@ -1361,25 +1539,41 @@
         if (radio.city) details += ` • ${radio.city}`;
         if (isPlaying) details = 'Tocando agora';
 
-        // Estado badge
-        const stateBadge = radio.state !== 'BR' ? `
-          <div class="radio-category-badge">${radio.state}</div>
-        ` : '';
+        // Numeração para organização alfabética
+        const numberPrefix = index ? `${index.toString().padStart(2, '0')}. ` : '';
+
+        // Estado badge com cores específicas
+        const stateColors = {
+          'CE': '#ff6b35', 'MA': '#f7931e', 'MG': '#4caf50', 
+          'PA': '#2196f3', 'PI': '#9c27b0', 'RJ': '#ff5722', 'SP': '#3f51b5', 'BR': '#00a848'
+        };
+        const badgeColor = stateColors[radio.state] || '#666';
+        
+        const stateBadge = `
+          <div class="radio-category-badge" style="background-color: ${badgeColor};">
+            ${radio.state}
+          </div>
+        `;
 
         item.innerHTML = `
           <div class="content-avatar" style="${avatarStyle}">
             ${!radio.icon ? radio.letter || radio.name.charAt(0) : ''}
           </div>
           <div class="content-info">
-            <div class="content-name">${radio.name}</div>
+            <div class="content-name">
+              <span class="radio-number" style="color: var(--text-secondary); font-size: 0.8rem; margin-right: 0.5rem;">
+                ${numberPrefix}
+              </span>
+              ${radio.name}
+            </div>
             <div class="content-details">
               ${details}
             </div>
           </div>
           ${stateBadge}
-          ${isPlaying ? '<div class="playing-indicator">Tocando</div>' : ''}
+          ${isPlaying ? '<div class="playing-indicator">🎵 Tocando</div>' : ''}
           <button class="favorite-btn ${this.favorites.has(radio.id) ? 'active' : ''}" 
-                  data-content-id="${radio.id}">
+                  data-content-id="${radio.id}" title="${this.favorites.has(radio.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}">
             <i class="fas fa-heart"></i>
           </button>
         `;
@@ -1397,7 +1591,8 @@
           e.stopPropagation();
           const isActive = this.favorites.toggle(radio.id);
           favoriteBtn.classList.toggle('active', isActive);
-          this.showSuccess(isActive ? 'Adicionado aos favoritos!' : 'Removido dos favoritos!');
+          favoriteBtn.title = isActive ? 'Remover dos favoritos' : 'Adicionar aos favoritos';
+          this.showSuccess(isActive ? `📻 ${radio.name} adicionada aos favoritos!` : `💔 ${radio.name} removida dos favoritos!`);
         });
 
         return item;
