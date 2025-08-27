@@ -1,0 +1,3099 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IPTV Player v9</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.0/css/all.min.css" rel="stylesheet">
+  <link href="https://vjs.zencdn.net/8.6.1/video-js.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --primary-color: #00A848;
+      --primary-gradient: linear-gradient(135deg, #00A848, #00c851);
+      --bg-primary: #1f1f1f;
+      --bg-secondary: #252525;
+      --bg-tertiary: #303030;
+      --bg-quaternary: #404040;
+      --text-primary: #ffffff;
+      --text-secondary: #9CA3AF;
+      --text-tertiary: #D1D5DB;
+    }
+
+    /* Temas */
+    [data-theme="black"] {
+      --primary-color: #ffffff;
+      --primary-gradient: linear-gradient(135deg, #333333, #555555);
+      --bg-primary: #000000;
+      --bg-secondary: #111111; /* FUNDO PARA CANAIS,  FILMES E SERIES E RÁDIOS */
+      --bg-tertiary: #222222; /* FUNDO DA LISTA DE ITENS*/
+      --bg-quaternary: #333333;
+    }
+
+    [data-theme="claro"] {
+      --primary-color: #007bff;
+      --primary-gradient: linear-gradient(135deg, #007bff, #0056b3);
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #e9ecef;
+      --bg-quaternary: #dee2e6;
+      --text-primary: #212529;
+      --text-secondary: #6c757d;
+      --text-tertiary: #495057;
+    }
+
+    [data-theme="azul"] {
+      --primary-color: #007bff;
+      --primary-gradient: linear-gradient(135deg, #007bff, #0056b3);
+      --bg-primary: #0d1117;
+      --bg-secondary: #161b22;
+      --bg-tertiary: #21262d;
+      --bg-quaternary: #30363d;
+    }
+
+    [data-theme="vermelho"] {
+      --primary-color: #dc3545;
+      --primary-gradient: linear-gradient(135deg, #dc3545, #c82333);
+      --bg-primary: #1a0d0d;
+      --bg-secondary: #2d1b1b;
+      --bg-tertiary: #3d2626;
+      --bg-quaternary: #4d3131;
+    }
+
+    [data-theme="verde"] {
+      --primary-color: #28a745;
+      --primary-gradient: linear-gradient(135deg, #28a745, #1e7e34);
+      --bg-primary: #0d1a0d;
+      --bg-secondary: #1b2d1b;
+      --bg-tertiary: #263d26;
+      --bg-quaternary: #314d31;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+    html, body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow-x: hidden;
+    }
+    
+    /* Header Styles - SEMPRE NO TOPO EM PAISAGEM */
+    .header {
+      background: var(--primary-gradient);
+      padding: 0.75rem 1rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      order: -1; /* Sempre no topo */
+    }
+    .header h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 4vw, 1.5rem);
+      font-weight: 700;
+      color: white;
+    }
+    .header-buttons {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .header-btn {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      border-radius: 50%;
+      width: clamp(35px, 8vw, 40px);
+      height: clamp(35px, 8vw, 40px);
+      color: white;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+    }
+    .header-btn:hover {
+      background: rgba(255,255,255,0.3);
+      transform: scale(1.1);
+      color: white;
+    }
+    
+    /* Video Player Styles */
+    .video-container {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+      background: #000;
+      overflow: hidden;
+    }
+    #videoPlayer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    
+    /* Logo inside player */
+    .player-logo {
+      position: absolute;
+      bottom: 60px;
+      left: 15px;
+      width: 60px;
+      height: auto;
+      opacity: 0.7;
+      z-index: 100;
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    /* NOVA ANIMAÇÃO DA LOGO */
+    .player-logo.animate-center {
+      bottom: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, 50%) scale(2);
+      opacity: 1;
+      z-index: 200;
+      transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .player-logo.animate-to-position {
+      bottom: 60px !important;
+      left: 15px !important;
+      transform: none;
+      opacity: 0.7;
+      z-index: 100;
+      transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    .player-logo:hover {
+      opacity: 1;
+    }
+
+    /* Radio info overlay - MELHORADO */
+    .radio-info-overlay {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0,0,0,0.85);
+      color: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      max-width: 350px;
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,0.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .radio-info-overlay.visible {
+      display: flex;
+    }
+    .radio-logo-small {
+      width: 45px;
+      height: 45px;
+      border-radius: 8px;
+      object-fit: cover;
+      background: var(--primary-gradient);
+      border: 2px solid rgba(255,255,255,0.2);
+    }
+    .radio-details {
+      flex: 1;
+      min-width: 0;
+    }
+    .radio-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin: 0 0 4px 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #ffffff;
+    }
+    .radio-frequency {
+      font-size: 0.8rem;
+      color: #ccc;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    /* Radio Visual Display - Nova visualização para rádios */
+    .radio-visual-display {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      z-index: 5; /* Reduzido para não esconder controles do player */
+    }
+    .radio-visual-display.active {
+      display: block;
+    }
+    
+    /* Background desfocado */
+    .radio-background {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      filter: blur(20px);
+      transform: scale(1.1);
+      opacity: 0.4;
+      z-index: 6;
+    }
+    
+    /* Overlay escuro para melhor contraste */
+    .radio-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%; 
+      background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5));
+      z-index: 7;
+    }
+    
+    /* Conteúdo principal da rádio */
+    .radio-main-content {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+      z-index: 8; /* Abaixo dos controles mas visível */
+      width: 90%;
+      max-width: 400px;
+    }
+    
+    /* Imagem da rádio com foco */
+    .radio-main-image {
+      width: clamp(50px, 5vw, 200px);
+      height: clamp(50px, 5vw, 200px);
+      border-radius: 20px;
+      object-fit: cover;
+      margin: 0 auto 1.5rem auto;
+      display: block;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      border: 3px solid rgba(255,255,255,0.2);
+      animation: radioGlow 3s ease-in-out infinite alternate;
+    }
+    
+    @keyframes radioGlow {
+      0% { 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 rgba(var(--primary-color), 0.0);
+      }
+      100% { 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 20px rgba(var(--primary-color), 0.3);
+      }
+    }
+    
+    /* Informações da rádio */
+    .radio-main-info h3 {
+      font-size: clamp(1.2rem, 4vw, 2rem);
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.7);
+      line-height: 1.2;
+    }
+    
+    .radio-main-info p {
+      font-size: clamp(0.9rem, 3vw, 1.1rem);
+      margin: 0 0 1rem 0;
+      opacity: 0.9;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.7);
+    }
+    
+    /* Indicador de reprodução */
+    .radio-playing-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(var(--primary-color), 0.2);
+      backdrop-filter: blur(10px);
+      padding: 0.5rem 1rem;
+      border-radius: 25px;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .radio-playing-indicator i {
+      animation: pulse 2s infinite;
+      color: var(--primary-color);
+    }
+    
+    .video-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #000000, #1a1a1a);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+    }
+    .video-placeholder i {
+      font-size: clamp(2.5rem, 8vw, 4rem);
+      margin-bottom: 1rem;
+      opacity: 0.7;
+    }
+    
+    /* Custom Controls */
+    .custom-controls {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      display: none;
+      justify-content: center;
+      gap: 10px;
+      z-index: 150;
+    }
+    .control-btn {
+      background: rgba(0,0,0,0.7);
+      border: none;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.8rem;
+    }
+    .control-btn:hover {
+      background: rgba(0,0,0,0.9);
+      transform: scale(1.05);
+    }
+    .control-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* GUIAS DE NAVEGAÇÃO PRINCIPAIS */
+    .main-nav {
+      background-color: var(--bg-secondary);
+      padding: 0.5rem 0;
+      border-bottom: 2px solid var(--bg-quaternary);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .main-nav::-webkit-scrollbar {
+      display: none;
+    }
+    .main-nav .nav-tabs {
+      border: none;
+      justify-content: center;
+      flex-wrap: nowrap;
+      min-width: max-content;
+    }
+    .main-nav .nav-link {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 4vw, 2rem);
+      font-weight: 600;
+      font-size: clamp(0.8rem, 3vw, 1.1rem);
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+    .main-nav .nav-link:hover {
+      color: var(--text-tertiary);
+      background: rgba(255,255,255,0.1);
+    }
+    .main-nav .nav-link.active {
+      color: var(--primary-color);
+      background: rgba(220, 20, 60, 0.1);
+      border-bottom: 3px solid var(--primary-color);
+    }
+    
+    /* ESTILOS DA BARRA DE GUIAS*/
+    .tab-bar {
+      background-color: var(--bg-tertiary);
+      padding: 0.5rem 0;
+      border-bottom: 2px solid var(--bg-quaternary);
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+    .tab-bar::-webkit-scrollbar {
+      display: none;
+    }
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0 1rem;
+      min-width: max-content;
+    }
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-secondary);
+      padding: clamp(0.5rem, 2vw, 0.75rem) clamp(1rem, 3vw, 1.5rem);
+      border-radius: 0.5rem;
+      font-weight: 600;
+      font-size: clamp(0.7rem, 2.5vw, 0.9rem);
+      white-space: nowrap;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .tab-btn:hover {
+      color: var(--text-tertiary);
+      background: rgba(255,255,255,0.1);
+    }
+    .tab-btn.active {
+      color: var(--primary-color);
+      background: rgba(220, 20, 60, 0.1);
+    }
+    
+    .content-list {
+      background-color: var(--bg-tertiary);
+      max-height: 60vh;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #555 var(--bg-tertiary);
+    }
+    .content-list::-webkit-scrollbar {
+      width: 6px;
+    }
+    .content-list::-webkit-scrollbar-track {
+      background: var(--bg-tertiary);
+    }
+    .content-list::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 3px;
+    }
+    
+    .content-item {
+      display: flex;
+      align-items: center;
+      padding: clamp(0.5rem, 2vw, 1rem);
+      border-bottom: 1px solid var(--bg-quaternary);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+    .content-item:hover {
+      background-color: var(--bg-quaternary);
+      transform: translateX(5px);
+    }
+    .content-item.playing {
+      background: linear-gradient(90deg, rgba(220, 20, 60, 0.2), transparent);
+      border-left: 4px solid var(--primary-color);
+    }
+    
+    .content-avatar {
+      width: clamp(40px, 8vw, 50px);
+      height: clamp(40px, 8vw, 50px);
+      border-radius: 8px;
+      margin-right: clamp(0.5rem, 2vw, 1rem);
+      background: var(--primary-gradient);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      background-size: cover;
+      background-position: center;
+    }
+    
+    .content-info {
+      flex: 1;
+      min-width: 0;
+    }
+    
+    .content-name {
+      font-weight: 600;
+      font-size: clamp(0.8rem, 3vw, 1rem);
+      margin: 0 0 0.25rem 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--text-primary);
+    }
+    
+    .content-details {
+      font-size: clamp(0.7rem, 2.5vw, 0.85rem);
+      color: var(--text-secondary);
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    
+    .playing-indicator {
+      color: var(--primary-color);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      position: absolute;
+      right: 50px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    .favorite-btn {
+      background: none;
+      border: none;
+      color: #666;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-left: 0.5rem;
+    }
+    .favorite-btn:hover {
+      color: #ff6b6b;
+      transform: scale(1.1);
+    }
+    .favorite-btn.active {
+      color: #ff6b6b;
+    }
+    
+    /* Progress Indicator */
+    .progress-indicator {
+      background: var(--primary-color);
+      color: white;
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-size: 0.6rem;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    /* App Container and Layout */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+    }
+
+    .video-section {
+      flex: 1;
+    }
+
+    .content-section-landscape {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .content-section {
+      display: none;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    .games-carousel {
+      background: var(--bg-secondary);
+      padding: 0.5rem;
+      overflow: hidden;
+      border-bottom: 1px solid var(--bg-quaternary);
+    }
+
+    .games-scroll {
+      white-space: nowrap;
+      animation: scroll 30s linear infinite;
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+    }
+
+    @keyframes scroll {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+
+    .episode-list {
+      display: none;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg-tertiary);
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    .episode-back-button {
+      grid-column: 1 / -1;
+      margin-bottom: 1rem;
+    }
+
+    .episode-card {
+      background: var(--bg-quaternary);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .episode-card:hover {
+      background: var(--bg-primary);
+      transform: translateY(-2px);
+    }
+
+    .episode-card.current {
+      border: 2px solid var(--primary-color);
+    }
+
+    .episode-number {
+      font-size: 0.8rem;
+      color: var(--primary-color);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    .episode-title {
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .episode-info {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .favorites-header {
+      background: var(--bg-secondary);
+      padding: 1rem;
+      border-bottom: 2px solid var(--bg-quaternary);
+    }
+
+    .favorites-horizontal-scroll {
+      background: var(--bg-tertiary);
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    /* Theme Modal */
+    .theme-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .theme-content {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+    }
+
+    .theme-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .theme-option {
+      padding: 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+    }
+
+    .theme-option:hover {
+      transform: scale(1.05);
+      border-color: var(--primary-color);
+    }
+
+    .theme-verde { background: linear-gradient(135deg, #28a745, #1e7e34); color: white; }
+    .theme-black { background: linear-gradient(135deg, #333333, #555555); color: white; }
+    .theme-claro { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
+    .theme-azul { background: linear-gradient(135deg, #007bff, #0056b3); color: white; }
+    .theme-vermelho { background: linear-gradient(135deg, #dc3545, #c82333); color: white; }
+
+    /* Loading Spinner */
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid var(--bg-quaternary);
+      border-top: 4px solid var(--primary-color);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Episode Navigation Overlay */
+    .episode-nav-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1500;
+    }
+
+    .episode-nav-content {
+      background: var(--bg-tertiary);
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 800px;
+      max-height: 80vh;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .episode-nav-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .episode-nav-title {
+      padding: 1rem;
+      margin: 0;
+      background: var(--primary-gradient);
+      color: white;
+      text-align: center;
+    }
+
+    .episode-nav-list {
+      padding: 1rem;
+      max-height: 60vh;
+      overflow-y: auto;
+    }
+
+    /* Continue watching modal */
+    .continue-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.8);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .continue-content {
+      background: var(--bg-tertiary);
+      padding: 2rem;
+      border-radius: 1rem;
+      max-width: 90%;
+      width: 400px;
+      text-align: center;
+    }
+
+    .continue-buttons {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 1rem;
+    }
+
+    /* Error overlay */
+    .error-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      flex-direction: column;
+      color: white;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    /* Responsive Design */
+    @media (min-width: 768px) {
+      .main-content {
+        flex-direction: row;
+      }
+      
+      .video-section {
+        flex: 2;
+        margin-right: 1rem;
+      }
+      
+      .content-section-landscape {
+        flex: 1;
+        min-width: 300px;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .content-list {
+        max-height: 70vh;
+      }
+      .episode-list {
+        max-height: 70vh;
+      }
+      .continue-content {
+        padding: 1.5rem;
+        margin: 1rem;
+      }
+      .continue-buttons {
+        flex-direction: column;
+      }
+      .player-logo {
+        width: 35px;
+        bottom: 15px;
+        left: 5px;
+      }
+      .radio-info-overlay {
+        top: 10px;
+        left: 10px;
+        max-width: 250px;
+        padding: 8px 10px;
+      }
+      .radio-logo-small {
+        width: 36px;
+        height: 36px;
+      }
+      .radio-name {
+        font-size: 0.8rem;
+      }
+      .radio-frequency {
+        font-size: 0.7rem;
+      }
+    }
+    @media (orientation: landscape) and (max-height: 500px) and (max-width: 767px) {
+      .content-list {
+        max-height: 35vh;
+      }
+      .episode-list {
+        max-height: 35vh;
+      }
+      .custom-controls {
+        bottom: 5px;
+      }
+      .player-logo {
+        bottom: 35px;
+      }
+      .radio-info-overlay {
+        top: 8px;
+        left: 8px;
+      }
+    }
+
+    @media (orientation: landscape) and (max-height: 600px) {
+      .header {
+        padding: 0.4rem 0.8rem;
+      }
+      
+      .header h1 {
+        font-size: 1.1rem;
+      }
+      
+      .header-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 0.8rem;
+      }
+      
+      .main-nav {
+        padding: 0.2rem 0;
+      }
+      
+      .main-nav .nav-link {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+      }
+      
+      .tab-bar {
+        padding: 0.2rem 0;
+      }
+      
+      .tab-btn {
+        padding: 0.3rem 0.6rem;
+        font-size: 0.7rem;
+      }
+      
+      .content-item {
+        padding: 0.4rem 0.6rem;
+      }
+      
+      .content-avatar {
+        width: 38px;
+        height: 38px;
+        margin-right: 0.6rem;
+        font-size: 0.8rem;
+      }
+      
+      .content-name {
+        font-size: 0.78rem;
+      }
+      
+      .content-details {
+        font-size: 0.68rem;
+      }
+    }
+  </style>
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="canonical" href="/iptv-player-v7.html" />
+  <meta name="description" content="Assista listas IPTV direto no navegador com o IPTV Player v9. Rápido, seguro e fácil de usar." />
+  <meta property="og:title" content="IPTV Player v9 — Player IPTV no Navegador" />
+  <meta property="og:description" content="Assista listas IPTV direto no navegador com o IPTV Player v9. Rápido, seguro e fácil de usar." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" - />
+  <meta property="og:image" content="/favicon.ico" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="IPTV Player vd. m9 — Player IPTV no Navegador" />
+  <meta name="twitter:description" content="Assista listas IPTV direto no navegador com o IPTV Player v9. Rápido, seguro e fácil de usar." />
+  <meta name="theme-color" content="#00A848" />
+
+  <script type="application/ld+json">
+  { "@context": "https://schema.org", "@type": "WebApplication", "name": "IPTV Player v9", "url": "/iptv-player-v7.html", "applicationCategory": "EntertainmentApplication", "operatingSystem": "Web", "description": "Player IPTV direto no navegador para assistir listas M3U/M3U8 com rapidez e segurança.", "offers": { "@type": "Offer", "price": "0", "priceCurrency": "BRL" } }
+  </script>
+
+  <style id="pro-polish">
+  /* Visual polish — mantém originalidade, apenas estética */
+  html, body { -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; }
+  .header { box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+  .header h1 { letter-spacing: .2px; }
+  .header-btn { backdrop-filter: saturate(120%) blur(4px); }
+  .header-btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+  .video-container { border-radius: 12px; }
+  .modal-content { box-shadow: 0 20px 40px rgba(0,0,0,.35); }
+  .content-item { transition: transform .2s ease, background-color .2s ease, box-shadow .2s ease; }
+  .content-item:hover { box-shadow: 0 6px 16px rgba(0,0,0,.25); }
+  .tab-btn, .main-nav .nav-link { border-radius: 999px; }
+  .main-nav .nav-link.active, .tab-btn.active { box-shadow: inset 0 0 0 1px rgba(255,255,255,.08), 0 6px 16px rgba(0,0,0,.25); }
+  .form-control, .btn, .modal-content { border-radius: 12px; }
+  .btn { transition: transform .15s ease, box-shadow .15s ease; }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(0,0,0,.25); }
+  .btn:active { transform: translateY(0); }
+  *:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 2px; }
+  .video-placeholder h5 { opacity: .9; }
+  </style>
+
+</head>
+<body data-theme="verde">
+  <div class="app-container">
+    <!-- Header - SEMPRE NO TOPO -->
+    <div class="header d-flex justify-content-between align-items-center">
+      <h1><i class="fas fa-fire me-2"></i>IPTV Player v9</h1>
+      <div class="header-buttons">
+        <button class="header-btn" id="themeBtn" title="Temas">
+          <i class="fas fa-palette"></i>
+        </button>
+        <button class="header-btn" id="shareBtn" title="Compartilhar">
+          <i class="fas fa-share-alt"></i>
+        </button>
+        <button class="header-btn" onclick="document.documentElement.requestFullscreen()" title="Tela Cheia">
+          <i class="fas fa-expand"></i>
+        </button>
+        <button class="header-btn" id="searchBtn" title="Buscar">
+          <i class="fas fa-search"></i>
+        </button>
+        <button class="header-btn" id="addPlaylistBtn" title="Adicionar Playlist">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <div class="main-content">
+      <!-- Video Section -->
+      <div class="video-section">
+        <!-- Video Player Container -->
+        <div class="video-container">
+          <video id="videoPlayer" class="video-js" controls preload="auto"></video>
+
+          <!-- Logo padrão dentro do player no canto inferior esquerdo -->
+          <img src="https://i.ibb.co/wYHRkPj/Text-Toos-Apk.png" alt="Logo Player" class="player-logo" id="playerLogo">
+          
+          <!-- Radio info overlay - MELHORADO COM LOGO -->
+          <div class="radio-info-overlay" id="radioInfoOverlay">
+            <img id="radioLogoSmall" src="" alt="Radio Logo" class="radio-logo-small">
+            <div class="radio-details">
+              <p class="radio-name" id="radioNameOverlay"></p>
+              <p class="radio-frequency" id="radioFrequencyOverlay"></p>
+            </div>
+          </div>
+
+          <!-- Radio Visual Display - Nova visualização para rádios -->
+          <div class="radio-visual-display" id="radioVisualDisplay">
+            <!-- Background desfocado -->
+            <div class="radio-background" id="radioBackground"></div>
+            
+            <!-- Overlay escuro -->
+            <div class="radio-overlay"></div>
+            
+            <!-- Conteúdo principal -->
+            <div class="radio-main-content">
+              <img id="radioMainImage" src="" alt="Radio Logo" class="radio-main-image">
+              <div class="radio-main-info">
+                <h3 id="radioMainName">Nome da Rádio</h3>
+                <p id="radioMainFrequency">Frequência</p>
+                <div class="radio-playing-indicator">
+                  <i class="fas fa-play"></i>
+                  <span>Reproduzindo</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="video-placeholder" id="videoPlaceholder">
+            <i class="fas fa-play-circle"></i>
+            <h5>Selecione um conteúdo para assistir</h5>
+          </div>
+
+          <!-- Custom Controls -->
+          <div class="custom-controls" id="customControls">
+            <button class="control-btn" id="episodeListBtn">
+              <i class="fas fa-list"></i> Episódios
+            </button>
+            <button class="control-btn" id="prevEpisodeBtn">
+              <i class="fas fa-step-backward"></i> Anterior
+            </button>
+            <button class="control-btn" id="nextEpisodeBtn">
+              Próximo <i class="fas fa-step-forward"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Main Navigation -->
+        <div class="main-nav">
+          <ul class="nav nav-tabs d-flex justify-content-center">
+            <li class="nav-item">
+              <button class="nav-link active" data-content="channels">
+                <i class="fas fa-broadcast-tower me-1"></i>Canais
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="movies">
+                <i class="fas fa-film me-1"></i>Filmes
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="series">
+                <i class="fas fa-tv me-1"></i>Séries
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="radios">
+                <i class="fas fa-radio me-1"></i>Rádios
+              </button>
+            </li>
+            <li class="nav-item">
+              <button class="nav-link" data-content="favorites">
+                <i class="fas fa-heart me-1"></i>Favoritos
+              </button>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Content Section -->
+      <div class="content-section-landscape">
+        <!-- Games Carousel -->
+        <div class="games-carousel">
+          <div class="games-scroll" id="gamesScroll">
+            <!--🎮 Carregando jogos...-->
+          </div>
+        </div>
+
+        <!-- Content Sections -->
+        
+        <!-- Channels Section -->
+        <div id="channelsSection" class="content-section active">
+          <div class="tab-bar">
+            <div class="tab-nav" id="channelTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="channelList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando canais...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Movies Section -->
+        <div id="moviesSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="movieTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="movieList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando filmes...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Series Section -->
+        <div id="seriesSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="seriesTabNav">
+              <!-- Categories will be loaded here -->
+            </div>
+          </div>
+          <div class="content-list" id="seriesList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando séries...</p>
+            </div>
+          </div>
+          <div class="episode-list" id="episodeList">
+            <!-- Episodes will be loaded here -->
+          </div>
+        </div>
+
+        <!-- Radios Section -->
+        <div id="radiosSection" class="content-section">
+          <div class="tab-bar">
+            <div class="tab-nav" id="radioTabNav">
+              <button class="tab-btn active" data-category="all">Todas</button>
+              <button class="tab-btn" data-category="ce">Ceará</button>
+              <button class="tab-btn" data-category="ma">Maranhão</button>
+              <button class="tab-btn" data-category="mg">Minas Gerais</button>
+              <button class="tab-btn" data-category="pa">Pará</button>
+              <button class="tab-btn" data-category="pi">Piauí</button>
+              <button class="tab-btn" data-category="rj">Rio De Janeiro</button>
+              <button class="tab-btn" data-category="sp">São Paulo</button>
+              <button class="tab-btn" data-category="nacional">Nacional</button>
+            </div>
+          </div>
+          <div class="content-list" id="radioList">
+            <div class="text-center p-4">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando rádios...</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Favorites Section -->
+        <div id="favoritesSection" class="content-section">
+          <div class="favorites-header">
+            <h4><i class="fas fa-heart me-2"></i>Meus Favoritos</h4>
+          </div>
+          <div class="favorites-horizontal-scroll" id="favoritesList">
+            <div class="text-center p-4">
+              <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum favorito ainda</p>
+              <p class="text-muted">Toque no ❤️ para adicionar!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Theme Selector Modal -->
+  <div class="theme-modal" id="themeModal">
+    <div class="theme-content">
+      <h4 class="mb-3">Escolher Tema</h4>
+      <div class="theme-grid">
+        <div class="theme-option theme-verde" data-theme="verde">
+          <i class="fas fa-leaf"></i>
+          <div>Verde</div>
+        </div>
+        <div class="theme-option theme-black" data-theme="black">
+          <i class="fas fa-moon"></i>
+          <div>Escuro</div>
+        </div>
+        <div class="theme-option theme-claro" data-theme="claro">
+          <i class="fas fa-sun"></i>
+          <div>Claro</div>
+        </div>
+        <div class="theme-option theme-azul" data-theme="azul">
+          <i class="fas fa-water"></i>
+          <div>Azul</div>
+        </div>
+        <div class="theme-option theme-vermelho" data-theme="vermelho">
+          <i class="fas fa-fire"></i>
+          <div>Vermelho</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary mt-3" onclick="closeThemeModal()">Fechar</button>
+    </div>
+  </div>
+
+  <!-- Episode Navigation Overlay -->
+  <div class="episode-nav-overlay" id="episodeNavOverlay">
+    <div class="episode-nav-content">
+      <button class="episode-nav-close" id="episodeNavClose">×</button>
+      <h4 class="episode-nav-title" id="episodeNavTitle">Episódios</h4>
+      <div class="episode-nav-list" id="episodeNavList">
+        <!-- Episode list will be populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Search Modal -->
+  <div class="modal fade" id="searchModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Buscar Conteúdo</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="text" class="form-control mb-3" id="searchInput" placeholder="Digite para buscar...">
+          <div class="form-check-inline mb-3">
+            <input class="form-check-input" type="checkbox" id="searchChannels" checked>
+            <label class="form-check-label me-3" for="searchChannels">Canais</label>
+            <input class="form-check-input" type="checkbox" id="searchMovies" checked>
+            <label class="form-check-label me-3" for="searchMovies">Filmes</label>
+            <input class="form-check-input" type="checkbox" id="searchSeries" checked>
+            <label class="form-check-label me-3" for="searchSeries">Séries</label>
+            <input class="form-check-input" type="checkbox" id="searchRadios" checked>
+            <label class="form-check-label" for="searchRadios">Rádios</label>
+          </div>
+          <div class="search-results" id="searchResults">
+            <div class="text-center">
+              <i class="fas fa-search fa-2x mb-2" style="color: #666;"></i>
+              <p>Digite algo para buscar</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Playlist Modal -->
+  <div class="modal fade" id="playlistModal" tabindex="-1">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Adicionar Playlist</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="playlistForm">
+            <div class="mb-3">
+              <label for="playlistUrl" class="form-label">URL da Playlist</label>
+              <input type="url" class="form-control" id="playlistUrl" placeholder="http://exemplo.com/get.php?username=user&password=pass&type=m3u_plus&output=ts" required>
+              <div class="form-text">Cole a URL completa da sua playlist IPTV</div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" id="savePlaylistBtn">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Continue watching modal -->
+  <div class="continue-modal" id="continueModal">
+    <div class="continue-content">
+      <h4>Continuar de onde parou?</h4>
+      <p id="continueText">Você assistiu <span id="continueProgress"></span> deste conteúdo.</p>
+      <div class="continue-buttons">
+        <button class="btn btn-secondary" id="continueFromStart">Começar do início</button>
+        <button class="btn btn-primary" id="continueFromPosition">Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error overlay -->
+  <div class="error-overlay" id="errorOverlay">
+    <i class="fas fa-exclamation-triangle fa-4x mb-3" style="color: #ff6b6b;"></i>
+    <h3>Ops! Algo deu errado</h3>
+    <p id="errorMessage">Erro ao carregar conteúdo</p>
+    <button class="btn btn-primary" id="retryBtn">Tentar novamente</button>
+    <button class="btn btn-secondary" onclick="document.getElementById('errorOverlay').style.display='none'">Fechar</button>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Video.js -->
+  <script src="https://vjs.zencdn.net/8.6.1/video.min.js"></script>
+
+  <script>
+    // Theme Management
+    function loadTheme() {
+      const savedTheme = localStorage.getItem('iptv-theme') || 'verde';
+      document.body.setAttribute('data-theme', savedTheme);
+    }
+
+    function saveTheme(theme) {
+      localStorage.setItem('iptv-theme', theme);
+      document.body.setAttribute('data-theme', theme);
+    }
+
+    function closeThemeModal() {
+      document.getElementById('themeModal').style.display = 'none';
+    }
+
+    // Favorites Backend
+    class FavoritesBackend {
+      constructor() {
+        this.favorites = new Set(JSON.parse(localStorage.getItem('iptv-favorites') || '[]'));
+      }
+
+      add(id) {
+        this.favorites.add(id);
+        this.save();
+      }
+
+      remove(id) {
+        this.favorites.delete(id);
+        this.save();
+      }
+
+      has(id) {
+        return this.favorites.has(id);
+      }
+
+      toggle(id) {
+        if (this.has(id)) {
+          this.remove(id);
+          return false;
+        } else {
+          this.add(id);
+          return true;
+        }
+      }
+
+      save() {
+        localStorage.setItem('iptv-favorites', JSON.stringify([...this.favorites]));
+      }
+
+      getAll() {
+        return [...this.favorites];
+      }
+    }
+
+    // Main App Class
+    class IPTVApp {
+      constructor() {
+        this.categories = [];
+        this.movieCategories = [];
+        this.seriesCategories = [];
+        this.channels = [];
+        this.movies = [];
+        this.series = [];
+        this.radios = [];
+        this.episodes = [];
+        this.allContent = [];
+        this.favorites = new Set();
+        this.favoritesBackend = new FavoritesBackend();
+        this.favoritesList = new Map();
+        this.watchProgress = new Map();
+        this.currentChannel = null;
+        this.currentMovie = null;
+        this.currentSeries = null;
+        this.currentEpisode = null;
+        this.currentEpisodeIndex = null;
+        this.currentRadio = null;
+        this.activeRadioCategory = 'all';
+        this.player = null;
+        this.pendingRetryAction = null;
+        this.progressSaveInterval = null;
+        this.cache = new Map();
+        this.cacheExpiration = 30 * 60 * 1000; // 30 minutes
+        this.retryAttempts = 3;
+        this.retryDelay = 1000;
+        this.favoritesBackend = new FavoritesBackend();
+        this.favoritesList = new Map(); // Cache for favorites display
+        this.config = {
+          server: 'http://c.maintech.top',
+          githubRawUrl: 'https://raw.githubusercontent.com/CaioCon/radiosiptvplayer/refs/heads/main/Rádios', // INSIRA AQUI A URL DO GITHUB RAW PARA CARREGAR RÁDIOS EXTRAS
+          username: 'IPTVBR',
+          password: 'IPTVBR'
+        };
+        this.initRadios();
+        this.init();
+      }
+
+      async initRadios() {
+        // Rádios organizadas por estado - CEARÁ
+        const radiosCeara = [
+          
+        ];
+
+        // Rádios organizadas por estado - MARANHÃO
+        const radiosMaranhao = [
+          
+        ];
+
+        // Rádios organizadas por estado - PARÁ
+        const radiosPara = [
+          
+        ];
+        
+        // Rádios organizadas por estado - Rio De Janeiro
+        const radiosRioDeJaneiro = [
+        {
+          id: 'globo_rj',
+          name: 'Rádio Globo RJ 98.1 FM',
+          type: 'radio',
+          url: 'https://playerservices.streamtheworld.com/api/livestream-redirect/RADIO_GLOBO_RJ.mp3',
+          icon: 'https://img.radios.com.br/radio/md/radio8817_1676300226.png',
+          city: 'Rio De Janeiro',
+          state: 'RJ',
+          category: 'rj',
+          frequency: '98.1 FM',
+          letter: 'R'
+        },
+        {
+          id: 'fm_o_dia',
+          name: 'Rádio FM O Dia 100.5 FM',
+          type: 'radio',
+          url: 'https://stm1.painelcast.com:7144/stream',
+          icon: 'https://img.radios.com.br/radio/md/radio10970_1575041063.jpg',
+          city: 'Rio De Janeiro',
+          state: 'RJ',
+          category: 'rj',
+          frequency: '100.5 FM',
+          letter: 'F'
+        }
+      ];
+
+        // Rádios organizadas por estado - SÃO PAULO
+        const radiosSaoPaulo = [
+          
+        ];
+
+        // Rádios organizadas por estado - MINAS GERAIS
+        const radiosMinasGerais = [
+          
+        ];
+
+        // Combinar todas as rádios organizadas por estado
+        this.radios = [
+          ...radiosCeara,
+          ...radiosMaranhao, 
+          ...radiosPara,
+          ...radiosSaoPaulo,
+          ...radiosRioDeJaneiro,
+          ...radiosMinasGerais
+        ];
+        
+        // NOVA FUNCIONALIDADE: Carregar rádios extras do GitHub RAW
+        await this.loadRadiosFromGitHubRaw();
+      }
+      
+      // NOVA FUNÇÃO: Carregar rádios do GitHub RAW
+      async loadRadiosFromGitHubRaw() {
+        // URL DO GITHUB RAW - INSIRA SUA URL AQUI:
+        const githubRawUrl = this.config.githubRawUrl || '';
+        
+        if (!githubRawUrl) {
+          console.log('URL do GitHub RAW não configurada');
+          return;
+        }
+        
+        try {
+          console.log('Carregando rádios extras do GitHub RAW:', githubRawUrl);
+          const response = await fetch(githubRawUrl);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          const data = await response.text();
+          
+          // Tentar fazer parsing do JSON
+          let extraRadios;
+          try {
+            extraRadios = JSON.parse(data);
+          } catch (parseError) {
+            console.error('Erro ao fazer parsing do JSON:', parseError);
+            return;
+          }
+          
+          // Validar se é um array
+          if (!Array.isArray(extraRadios)) {
+            console.error('O arquivo RAW deve conter um array de rádios');
+            return;
+          }
+          
+          // Adicionar as rádios extras às rádios existentes
+          console.log(`Adicionando ${extraRadios.length} rádios extras`);
+          this.radios = [...this.radios, ...extraRadios];
+          
+        } catch (error) {
+          console.error('Erro ao carregar rádios do GitHub RAW:', error);
+        }
+      }
+
+      async init() {
+        try {
+          this.loadConfig();
+          this.loadFavorites();
+          this.loadWatchProgress();
+          this.setupPlayer();
+          this.setupEventListeners();
+          await this.loadGames();
+          await this.loadChannels();
+          this.renderChannels();
+        } catch (error) {
+          console.error('Erro ao inicializar:', error);
+          this.showError('Erro ao carregar dados');
+        }
+      }
+
+      loadConfig() {
+        const saved = localStorage.getItem('iptv-config');
+        if (saved) {
+          try {
+            this.config = { ...this.config, ...JSON.parse(saved) };
+          } catch (error) {
+            console.error('Erro ao carregar configuração:', error);
+          }
+        }
+      }
+
+      saveConfig() {
+        localStorage.setItem('iptv-config', JSON.stringify(this.config));
+      }
+
+      loadFavorites() {
+        const saved = localStorage.getItem('iptv-favorites');
+        if (saved) {
+          try {
+            this.favorites = new Set(JSON.parse(saved));
+          } catch (error) {
+            console.error('Erro ao carregar favoritos:', error);
+          }
+        }
+      }
+
+      saveFavorites() {
+        localStorage.setItem('iptv-favorites', JSON.stringify([...this.favorites]));
+      }
+
+      loadWatchProgress() {
+        const saved = localStorage.getItem('iptv-progress');
+        if (saved) {
+          try {
+            const progressArray = JSON.parse(saved);
+            this.watchProgress = new Map(progressArray);
+          } catch (error) {
+            console.error('Erro ao carregar progresso:', error);
+          }
+        }
+      }
+
+      saveWatchProgress() {
+        const progressArray = [...this.watchProgress.entries()];
+        localStorage.setItem('iptv-progress', JSON.stringify(progressArray));
+      }
+
+      setupPlayer() {
+        const videoElement = document.getElementById('videoPlayer');
+        this.player = videojs(videoElement, {
+          responsive: true,
+          fluid: true,
+          playbackRates: [0.5, 1, 1.25, 1.5, 2],
+          controls: true,
+          preload: 'auto'
+        });
+      }
+
+      setupEventListeners() {
+        // Theme selector
+        document.getElementById('themeBtn').addEventListener('click', () => {
+          document.getElementById('themeModal').style.display = 'flex';
+        });
+
+        // Theme options
+        document.querySelectorAll('.theme-option').forEach(option => {
+          option.addEventListener('click', () => {
+            const theme = option.getAttribute('data-theme');
+            saveTheme(theme);
+            closeThemeModal();
+          });
+        });
+
+        // Navigation
+        document.querySelectorAll('[data-content]').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.switchContent(btn.getAttribute('data-content'));
+          });
+        });
+
+        // Radio category navigation
+        document.querySelectorAll('#radioTabNav .tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            this.activeRadioCategory = btn.getAttribute('data-category');
+            
+            // Update active tab
+            document.querySelectorAll('#radioTabNav .tab-btn').forEach(tab => {
+              tab.classList.remove('active');
+            });
+            btn.classList.add('active');
+            
+            this.renderRadios();
+          });
+        });
+
+        // Share button
+        document.getElementById('shareBtn').addEventListener('click', () => {
+          this.shareApp();
+        });
+
+        // Search functionality
+        document.getElementById('searchBtn').addEventListener('click', () => {
+          const modal = new bootstrap.Modal(document.getElementById('searchModal'));
+          modal.show();
+        });
+
+        // Playlist functionality
+        document.getElementById('addPlaylistBtn').addEventListener('click', () => {
+          const modal = new bootstrap.Modal(document.getElementById('playlistModal'));
+          modal.show();
+        });
+
+        document.getElementById('savePlaylistBtn').addEventListener('click', () => {
+          this.savePlaylist();
+        });
+
+        // Search input
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+          this.performSearch(e.target.value);
+        });
+
+        // Continue watching modal
+        document.getElementById('continueFromStart').addEventListener('click', () => {
+          document.getElementById('continueModal').style.display = 'none';
+          if (this.pendingPlayAction) {
+            this.pendingPlayAction(0);
+            this.pendingPlayAction = null;
+          }
+        });
+
+        document.getElementById('continueFromPosition').addEventListener('click', () => {
+          document.getElementById('continueModal').style.display = 'none';
+          if (this.pendingPlayAction && this.pendingStartTime) {
+            this.pendingPlayAction(this.pendingStartTime);
+            this.pendingPlayAction = null;
+            this.pendingStartTime = null;
+          }
+        });
+
+        // Error overlay
+        document.getElementById('retryBtn').addEventListener('click', () => {
+          document.getElementById('errorOverlay').style.display = 'none';
+          if (this.pendingRetryAction) {
+            this.pendingRetryAction();
+          }
+        });
+
+        // Episode navigation
+        document.getElementById('episodeListBtn').addEventListener('click', () => {
+          this.showEpisodeNavigation();
+        });
+
+        document.getElementById('prevEpisodeBtn').addEventListener('click', () => {
+          this.playPreviousEpisode();
+        });
+
+        document.getElementById('nextEpisodeBtn').addEventListener('click', () => {
+          this.playNextEpisode();
+        });
+
+        document.getElementById('episodeNavClose').addEventListener('click', () => {
+          document.getElementById('episodeNavOverlay').style.display = 'none';
+        });
+      }
+
+      switchContent(contentType) {
+        // Update active nav button
+        document.querySelectorAll('.nav-link').forEach(link => {
+          link.classList.remove('active');
+        });
+        document.querySelector(`[data-content="${contentType}"]`).classList.add('active');
+
+        // Show/hide content sections
+        document.querySelectorAll('.content-section').forEach(section => {
+          section.classList.remove('active');
+        });
+        document.getElementById(`${contentType}Section`).classList.add('active');
+
+        // Load content based on type
+        switch (contentType) {
+          case 'channels':
+            this.renderChannels();
+            break;
+          case 'movies':
+            this.loadMovies();
+            break;
+          case 'series':
+            this.loadSeries();
+            break;
+          case 'radios':
+            this.renderRadios();
+            break;
+          case 'favorites':
+            this.renderFavorites();
+            break;
+        }
+      }
+
+      // Cache utilities
+      setCachedData(key, data) {
+        this.cache.set(key, {
+          data: data,
+          timestamp: Date.now()
+        });
+      }
+
+      getCachedData(key) {
+        const cached = this.cache.get(key);
+        if (!cached) return null;
+
+        if (Date.now() - cached.timestamp > this.cacheExpiration) {
+          this.cache.delete(key);
+          return null;
+        }
+
+        return cached.data;
+      }
+
+      // Network retry utility
+      async retryRequest(requestFn, attempts = this.retryAttempts) {
+        for (let i = 0; i < attempts; i++) {
+          try {
+            return await requestFn();
+          } catch (error) {
+            if (i === attempts - 1) throw error;
+            await new Promise(resolve => setTimeout(resolve, this.retryDelay * Math.pow(2, i)));
+          }
+        }
+      }
+
+      async loadChannels() {
+        try {
+          const cacheKey = 'channels';
+          let channelsData = this.getCachedData(cacheKey);
+          
+          if (!channelsData) {
+            channelsData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_live_categories`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, channelsData);
+          }
+          
+          this.categories = channelsData || [];
+          
+          // Load channels for each category
+          for (const category of this.categories) {
+            const channelCacheKey = `channels-${category.category_id}`;
+            let channels = this.getCachedData(channelCacheKey);
+            
+            if (!channels) {
+              channels = await this.retryRequest(async () => {
+                const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_live_streams&category_id=${category.category_id}`);
+                if (!response.ok) {
+                  throw new Error('Erro na requisição');
+                }
+                return await response.json();
+              });
+              this.setCachedData(channelCacheKey, channels);
+            }
+            
+            this.channels = [...this.channels, ...channels.map(channel => ({
+              ...channel,
+              category: category.category_name,
+              type: 'channel',
+              url: `${this.config.server}/live/${this.config.username}/${this.config.password}/${channel.stream_id}.${channel.container_extension || 'ts'}`,
+              icon: channel.stream_icon,
+              letter: channel.name ? channel.name.charAt(0).toUpperCase() : 'C'
+            }))];
+          }
+          
+          this.allContent = [...this.channels];
+        } catch (error) {
+          console.error('Erro ao carregar canais:', error);
+        }
+      }
+
+      async loadMovies() {
+        try {
+          const cacheKey = 'movie-categories';
+          let categoriesData = this.getCachedData(cacheKey);
+          
+          if (!categoriesData) {
+            categoriesData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_vod_categories`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, categoriesData);
+          }
+          
+          this.movieCategories = categoriesData || [];
+          this.renderMovieCategories();
+          
+          // Load first category by default
+          if (this.movieCategories.length > 0) {
+            this.loadMoviesByCategory(this.movieCategories[0].category_id);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar categorias de filmes:', error);
+          this.showError('Erro ao carregar filmes');
+        }
+      }
+
+      async loadMoviesByCategory(categoryId) {
+        try {
+          const cacheKey = `movies-${categoryId}`;
+          let moviesData = this.getCachedData(cacheKey);
+          
+          if (!moviesData) {
+            moviesData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_vod_streams&category_id=${categoryId}`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, moviesData);
+          }
+          
+          this.movies = moviesData.map(movie => ({
+            ...movie,
+            type: 'movie',
+            url: `${this.config.server}/movie/${this.config.username}/${this.config.password}/${movie.stream_id}.${movie.container_extension || 'mp4'}`,
+            icon: movie.stream_icon,
+            letter: movie.name ? movie.name.charAt(0).toUpperCase() : 'M',
+            year: movie.year || '',
+            rating: movie.rating || ''
+          }));
+          
+          this.renderMovies();
+        } catch (error) {
+          console.error('Erro ao carregar filmes:', error);
+          this.showError('Erro ao carregar filmes');
+        }
+      }
+
+      async loadSeries() {
+        try {
+          const cacheKey = 'series-categories';
+          let categoriesData = this.getCachedData(cacheKey);
+          
+          if (!categoriesData) {
+            categoriesData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_series_categories`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, categoriesData);
+          }
+          
+          this.seriesCategories = categoriesData || [];
+          this.renderSeriesCategories();
+          
+          // Load first category by default
+          if (this.seriesCategories.length > 0) {
+            this.loadSeriesByCategory(this.seriesCategories[0].category_id);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar categorias de séries:', error);
+          this.showError('Erro ao carregar séries');
+        }
+      }
+
+      async loadSeriesByCategory(categoryId) {
+        try {
+          const cacheKey = `series-${categoryId}`;
+          let seriesData = this.getCachedData(cacheKey);
+          
+          if (!seriesData) {
+            seriesData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_series&category_id=${categoryId}`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, seriesData);
+          }
+          
+          this.series = seriesData.map(series => ({
+            ...series,
+            type: 'series',
+            icon: series.cover,
+            letter: series.name ? series.name.charAt(0).toUpperCase() : 'S'
+          }));
+          
+          this.renderSeries();
+        } catch (error) {
+          console.error('Erro ao carregar séries:', error);
+          this.showError('Erro ao carregar séries');
+        }
+      }
+
+      renderChannelCategories() {
+        const tabNav = document.getElementById('channelTabNav');
+        tabNav.innerHTML = '';
+        
+        const allBtn = document.createElement('button');
+        allBtn.className = 'tab-btn active';
+        allBtn.textContent = 'Todos';
+        allBtn.addEventListener('click', () => {
+          this.renderChannels();
+          document.querySelectorAll('#channelTabNav .tab-btn').forEach(btn => btn.classList.remove('active'));
+          allBtn.classList.add('active');
+        });
+        tabNav.appendChild(allBtn);
+
+        this.categories.forEach(category => {
+          const btn = document.createElement('button');
+          btn.className = 'tab-btn';
+          btn.textContent = category.category_name;
+          btn.addEventListener('click', () => {
+            this.renderChannelsByCategory(category.category_name);
+            document.querySelectorAll('#channelTabNav .tab-btn').forEach(btn => btn.classList.remove('active'));
+            btn.classList.add('active');
+          });
+          tabNav.appendChild(btn);
+        });
+      }
+
+      renderMovieCategories() {
+        const tabNav = document.getElementById('movieTabNav');
+        tabNav.innerHTML = '';
+
+        this.movieCategories.forEach((category, index) => {
+          const btn = document.createElement('button');
+          btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+          btn.textContent = category.category_name;
+          btn.addEventListener('click', () => {
+            this.loadMoviesByCategory(category.category_id);
+            document.querySelectorAll('#movieTabNav .tab-btn').forEach(btn => btn.classList.remove('active'));
+            btn.classList.add('active');
+          });
+          tabNav.appendChild(btn);
+        });
+      }
+
+      renderSeriesCategories() {
+        const tabNav = document.getElementById('seriesTabNav');
+        tabNav.innerHTML = '';
+
+        this.seriesCategories.forEach((category, index) => {
+          const btn = document.createElement('button');
+          btn.className = `tab-btn ${index === 0 ? 'active' : ''}`;
+          btn.textContent = category.category_name;
+          btn.addEventListener('click', () => {
+            this.loadSeriesByCategory(category.category_id);
+            document.querySelectorAll('#seriesTabNav .tab-btn').forEach(btn => btn.classList.remove('active'));
+            btn.classList.add('active');
+          });
+          tabNav.appendChild(btn);
+        });
+      }
+
+      renderChannels(category = null) {
+        const channelList = document.getElementById('channelList');
+        let filteredChannels = this.channels;
+        
+        if (category) {
+          filteredChannels = this.channels.filter(channel => channel.category === category);
+        }
+
+        if (filteredChannels.length === 0) {
+          channelList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-broadcast-tower fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum canal encontrado</p>
+            </div>
+          `;
+          return;
+        }
+
+        channelList.innerHTML = '';
+        filteredChannels.forEach(channel => {
+          const item = this.createContentItem(channel, 'channel');
+          channelList.appendChild(item);
+        });
+      }
+
+      renderChannelsByCategory(category) {
+        this.renderChannels(category);
+      }
+
+      renderMovies() {
+        const movieList = document.getElementById('movieList');
+        
+        if (this.movies.length === 0) {
+          movieList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-film fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum filme encontrado nesta categoria</p>
+            </div>
+          `;
+          return;
+        }
+
+        movieList.innerHTML = '';
+        this.movies.forEach(movie => {
+          const item = this.createContentItem(movie, 'movie');
+          movieList.appendChild(item);
+        });
+      }
+
+      renderSeries() {
+        const seriesList = document.getElementById('seriesList');
+        
+        if (this.series.length === 0) {
+          seriesList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-tv fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhuma série encontrada nesta categoria</p>
+            </div>
+          `;
+          return;
+        }
+
+        seriesList.innerHTML = '';
+        this.series.forEach(series => {
+          const item = this.createContentItem(series, 'series');
+          seriesList.appendChild(item);
+        });
+      }
+
+      renderRadios() {
+        const radioList = document.getElementById('radioList');
+        let filteredRadios = this.radios;
+        
+        if (this.activeRadioCategory !== 'all') {
+          filteredRadios = this.radios.filter(radio => radio.category === this.activeRadioCategory);
+        }
+
+        if (filteredRadios.length === 0) {
+          radioList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-radio fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhuma rádio encontrada nesta categoria</p>
+            </div>
+          `;
+          return;
+        }
+
+        // MODIFICAÇÃO PRINCIPAL: Organizar rádios alfabeticamente por nome DENTRO DE CADA CATEGORIA
+        const sortedRadios = filteredRadios.sort((a, b) => {
+          // Primeiro ordenar por categoria (estado)
+          if (a.category !== b.category) {
+            return a.category.localeCompare(b.category, 'pt-BR', { sensitivity: 'base' });
+          }
+          // Dentro da mesma categoria, ordenar alfabeticamente por nome
+          return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' });
+        });
+
+        radioList.innerHTML = '';
+        sortedRadios.forEach(radio => {
+          const item = this.createContentItem(radio, 'radio');
+          radioList.appendChild(item);
+        });
+      }
+
+      createContentItem(content, type) {
+        const item = document.createElement('div');
+        item.className = 'content-item';
+        
+        const isPlaying = (type === 'channel' && this.currentChannel === content.id) ||
+                         (type === 'movie' && this.currentMovie?.id === content.id) ||
+                         (type === 'series' && this.currentSeries?.id === content.id) ||
+                         (type === 'radio' && this.currentRadio?.id === content.id);
+
+        if (isPlaying) {
+          item.classList.add('playing');
+        }
+
+        const avatarStyle = content.icon ? `background-image: url('${content.icon}'); background-size: cover; background-position: center;` : '';
+
+        // Check for watch progress
+        const progressKey = type === 'channel' ? `channel_${content.id}` : 
+                           type === 'movie' ? `movie_${content.id}` : 
+                           type === 'series' ? `series_${content.id}` :
+                           `radio_${content.id}`;
+        const progress = this.watchProgress.get(progressKey);
+        let progressIndicator = '';
+        if (progress && progress.percentage > 5 && progress.percentage < 90) {
+          progressIndicator = `<div class="progress-indicator">${Math.round(progress.percentage)}%</div>`;
+        }
+
+        let details = '';
+        if (type === 'channel') {
+          details = isPlaying ? 'Reproduzindo agora' : 'Toque para assistir';
+        } else if (type === 'movie') {
+          details = content.year ? `Ano: ${content.year}` : 'Filme';
+        } else if (type === 'series') {
+          details = 'Série';
+        } else if (type === 'radio') {
+          details = content.frequency || 'Rádio';
+          if (content.city) details += ` • ${content.city}`;
+          if (isPlaying) details = 'Tocando agora';
+        }
+
+        item.innerHTML = `
+          <div class="content-avatar" style="${avatarStyle}">
+            ${!content.icon ? content.letter : ''}
+          </div>
+          <div class="content-info">
+            <div class="content-name">${content.name}</div>
+            <div class="content-details">
+              ${details}
+              ${content.rating ? ` • ⭐ ${content.rating}` : ''}
+              ${progressIndicator}
+            </div>
+          </div>
+          ${isPlaying ? '<div class="playing-indicator">Tocando</div>' : ''}
+          <button class="favorite-btn ${this.favorites.has(content.id) ? 'active' : ''}" 
+                  data-content-id="${content.id}">
+            <i class="fas fa-heart"></i>
+          </button>
+        `;
+
+        // Content click event
+        item.addEventListener('click', (e) => {
+          if (!e.target.classList.contains('favorite-btn') && !e.target.closest('.favorite-btn')) {
+            if (type === 'channel') {
+              this.playChannel(content);
+            } else if (type === 'movie') {
+              this.playMovie(content);
+            } else if (type === 'series') {
+              this.showSeriesEpisodes(content);
+            } else if (type === 'radio') {
+              this.playRadio(content);
+            }
+          }
+        });
+
+        // Favorite button event
+        const favoriteBtn = item.querySelector('.favorite-btn');
+        favoriteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.toggleFavorite(content.id);
+        });
+
+        return item;
+      }
+
+      // NOVA FUNÇÃO PARA ANIMAR A LOGO
+      animateLogo() {
+        const logo = document.getElementById('playerLogo');
+        
+        // Reset any existing classes
+        logo.classList.remove('animate-center', 'animate-to-position');
+        
+        // Force reflow
+        logo.offsetHeight;
+        
+        // Animate to center
+        logo.classList.add('animate-center');
+        
+        // After 1.5 seconds, animate to final position
+        setTimeout(() => {
+          logo.classList.remove('animate-center');
+          logo.classList.add('animate-to-position');
+          
+          // Remove the class after animation completes
+          setTimeout(() => {
+            logo.classList.remove('animate-to-position');
+          }, 1200);
+        }, 1500);
+      }
+
+      playChannel(channel) {
+        const progress = this.checkContinueWatching(channel.id, 'channel');
+
+        const doPlay = (startTime = 0) => {
+          try {
+            this.animateLogo(); // NOVA LINHA - Anima a logo
+            this.currentChannel = channel.id;
+            this.currentMovie = null;
+            this.currentSeries = null;
+            this.currentEpisode = null;
+            this.currentRadio = null;
+
+            // Use advanced player with HLS support
+            this.setupAdvancedPlayer(channel.url, 'channel');
+
+            this.player.ready(() => {
+              if (startTime > 0) {
+                this.player.currentTime(startTime);
+              }
+              this.player.play();
+            });
+
+            document.getElementById('videoPlaceholder').style.display = 'none';
+            this.renderChannels();
+            this.hideCustomControls();
+            this.hideRadioInfo();
+            this.hideRadioVisualDisplay();
+          } catch (error) {
+            console.error('Erro ao reproduzir canal:', error);
+            this.showErrorOverlay('Erro ao reproduzir canal', () => this.playChannel(channel));
+          }
+        };
+
+        if (progress) {
+          this.showContinueModal(progress, doPlay, () => doPlay(0));
+        } else {
+          doPlay();
+        }
+      }
+
+      playMovie(movie) {
+        const progress = this.checkContinueWatching(movie, 'movie');
+
+        const doPlay = (startTime = 0) => {
+          try {
+            this.animateLogo(); // NOVA LINHA - Anima a logo
+            this.currentMovie = movie;
+            this.currentChannel = null;
+            this.currentSeries = null;
+            this.currentEpisode = null;
+            this.currentRadio = null;
+
+            // Use advanced player
+            this.setupAdvancedPlayer(movie.url, 'movie');
+
+            this.player.ready(() => {
+              if (startTime > 0) {
+                this.player.currentTime(startTime);
+              }
+              this.player.play();
+            });
+
+            document.getElementById('videoPlaceholder').style.display = 'none';
+            this.renderMovies();
+            this.hideCustomControls();
+            this.hideRadioInfo();
+            this.hideRadioVisualDisplay();
+          } catch (error) {
+            console.error('Erro ao reproduzir filme:', error);
+            this.showErrorOverlay('Erro ao reproduzir filme', () => this.playMovie(movie));
+          }
+        };
+
+        if (progress) {
+          this.showContinueModal(progress, doPlay, () => doPlay(0));
+        } else {
+          doPlay();
+        }
+      }
+
+      playRadio(radio) {
+        try {
+          this.animateLogo(); // NOVA LINHA - Anima a logo
+          this.currentRadio = radio;
+          this.currentChannel = null;
+          this.currentMovie = null;
+          this.currentSeries = null;
+          this.currentEpisode = null;
+
+          // Use advanced player for radio
+          this.setupAdvancedPlayer(radio.url, 'radio');
+
+          this.player.ready(() => {
+            this.player.play();
+          });
+
+          document.getElementById('videoPlaceholder').style.display = 'none';
+          
+          // Show radio visual display instead of just the overlay
+          this.showRadioVisualDisplay(radio);
+          
+          this.renderRadios();
+          this.hideCustomControls();
+        } catch (error) {
+          console.error('Erro ao reproduzir rádio:', error);
+          this.showErrorOverlay('Erro ao reproduzir rádio', () => this.playRadio(radio));
+        }
+      }
+
+      showRadioVisualDisplay(radio) {
+        const visualDisplay = document.getElementById('radioVisualDisplay');
+        const background = document.getElementById('radioBackground');
+        const mainImage = document.getElementById('radioMainImage');
+        const mainName = document.getElementById('radioMainName');
+        const mainFrequency = document.getElementById('radioMainFrequency');
+
+        // Set radio information
+        mainName.textContent = radio.name;
+        mainFrequency.textContent = `${radio.frequency}${radio.city ? ' • ' + radio.city : ''}`;
+
+        // Set images (both background and main)
+        if (radio.icon) {
+          background.style.backgroundImage = `url(${radio.icon})`;
+          mainImage.src = radio.icon;
+          mainImage.alt = radio.name;
+          
+          // Handle image loading
+          mainImage.onerror = function() {
+            // Fallback to gradient background
+            background.style.backgroundImage = 'linear-gradient(135deg, var(--primary-color), var(--bg-secondary))';
+            this.style.display = 'none';
+          };
+          mainImage.onload = function() {
+            this.style.display = 'block';
+          };
+        } else {
+          // No icon available - use gradient background
+          background.style.backgroundImage = 'linear-gradient(135deg, var(--primary-color), var(--bg-secondary))';
+          mainImage.style.display = 'none';
+        }
+
+        // Show the visual display
+        visualDisplay.classList.add('active');
+
+        // Also show the small overlay for a few seconds as additional feedback
+        this.showRadioInfo(radio);
+      }
+
+      hideRadioVisualDisplay() {
+        const visualDisplay = document.getElementById('radioVisualDisplay');
+        visualDisplay.classList.remove('active');
+      }
+
+      showRadioInfo(radio) {
+        const overlay = document.getElementById('radioInfoOverlay');
+        const logoSmall = document.getElementById('radioLogoSmall');
+        const nameOverlay = document.getElementById('radioNameOverlay');
+        const frequencyOverlay = document.getElementById('radioFrequencyOverlay');
+
+        // Set radio info
+        logoSmall.src = radio.icon || '';
+        logoSmall.alt = radio.name;
+        logoSmall.onerror = function() {
+          this.style.display = 'none';
+        };
+        logoSmall.onload = function() {
+          this.style.display = 'block';
+        };
+        
+        nameOverlay.textContent = radio.name;
+        frequencyOverlay.textContent = `${radio.frequency}${radio.city ? ' • ' + radio.city : ''}`;
+
+        // Show overlay
+        overlay.classList.add('visible');
+
+        // Hide after 8 seconds
+        setTimeout(() => {
+          overlay.classList.remove('visible');
+        }, 10000);
+      }
+
+      hideRadioInfo() {
+        const overlay = document.getElementById('radioInfoOverlay');
+        overlay.classList.remove('visible');
+      }
+
+      async showSeriesEpisodes(series) {
+        try {
+          this.currentSeries = series;
+          
+          // Hide series list and show episode list
+          document.getElementById('seriesList').style.display = 'none';
+          const episodeList = document.getElementById('episodeList');
+          episodeList.style.display = 'grid';
+
+          episodeList.innerHTML = `
+            <div class="episode-back-button">
+              <button class="btn btn-secondary" onclick="iptvApp.backToSeries()">
+                <i class="fas fa-arrow-left me-2"></i>Voltar às séries
+              </button>
+              <h5 class="mt-2 mb-0">${series.name}</h5>
+            </div>
+            <div class="text-center p-4" style="grid-column: 1 / -1;">
+              <div class="loading-spinner"></div>
+              <p class="mt-2 mb-0">Carregando episódios...</p>
+            </div>
+          `;
+
+          // Load episodes with cache
+          const cacheKey = `episodes-${series.id}`;
+          let episodesData = this.getCachedData(cacheKey);
+          
+          if (!episodesData) {
+            episodesData = await this.retryRequest(async () => {
+              const response = await fetch(`${this.config.server}/player_api.php?username=${this.config.username}&password=${this.config.password}&action=get_series_info&series_id=${series.id}`);
+              if (!response.ok) {
+                throw new Error('Erro na requisição');
+              }
+              return await response.json();
+            });
+            this.setCachedData(cacheKey, episodesData);
+          }
+
+          this.episodes = [];
+          
+          // Parse episodes from all seasons - CORRIGIDO
+          if (episodesData.episodes) {
+            Object.keys(episodesData.episodes).forEach(seasonNum => {
+              const seasonEpisodes = episodesData.episodes[seasonNum];
+              if (Array.isArray(seasonEpisodes)) {
+                seasonEpisodes.forEach(episode => {
+                  this.episodes.push({
+                    id: episode.id,
+                    title: episode.title,
+                    episode_num: episode.episode_num,
+                    season: episode.season || seasonNum,
+                    url: `${this.config.server}/series/${this.config.username}/${this.config.password}/${episode.id}.${episode.container_extension || 'mp4'}`,
+                    info: episode.info || {}
+                  });
+                });
+              }
+            });
+          }
+
+          // Sort episodes
+          this.episodes.sort((a, b) => {
+            if (a.season !== b.season) {
+              return a.season - b.season;
+            }
+            return a.episode_num - b.episode_num;
+          });
+
+          this.renderEpisodes();
+        } catch (error) {
+          console.error('Erro ao carregar episódios:', error);
+          this.showErrorOverlay('Erro ao carregar episódios', () => this.showSeriesEpisodes(series));
+        }
+      }
+
+      renderEpisodes() {
+        const episodeList = document.getElementById('episodeList');
+        
+        if (this.episodes.length === 0) {
+          episodeList.innerHTML = `
+            <div class="episode-back-button">
+              <button class="btn btn-secondary" onclick="iptvApp.backToSeries()">
+                <i class="fas fa-arrow-left me-2"></i>Voltar às séries
+              </button>
+              <h5 class="mt-2 mb-0">${this.currentSeries.name}</h5>
+            </div>
+            <div class="text-center p-4" style="grid-column: 1 / -1;">
+              <i class="fas fa-play fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum episódio encontrado</p>
+            </div>
+          `;
+          return;
+        }
+
+        episodeList.innerHTML = `
+          <div class="episode-back-button">
+            <button class="btn btn-secondary" onclick="iptvApp.backToSeries()">
+              <i class="fas fa-arrow-left me-2"></i>Voltar às séries
+            </button>
+            <h5 class="mt-2 mb-0">${this.currentSeries.name}</h5>
+          </div>
+        `;
+
+        this.episodes.forEach((episode, index) => {
+          const episodeCard = document.createElement('div');
+          episodeCard.className = 'episode-card';
+          
+          if (this.currentEpisode && this.currentEpisode.id === episode.id) {
+            episodeCard.classList.add('current');
+          }
+
+          // Check for progress
+          const progress = this.checkContinueWatching(episode, 'episode');
+          let progressText = '';
+          if (progress) {
+            progressText = `<div class="progress-indicator mt-2">${Math.round(progress.percentage)}% assistido</div>`;
+          }
+
+          episodeCard.innerHTML = `
+            <div class="episode-number">T${episode.season}E${episode.episode_num}</div>
+            <div class="episode-title">${episode.title}</div>
+            <div class="episode-info">
+              ${episode.info.duration || ''}
+              ${progressText}
+            </div>
+          `;
+
+          episodeCard.addEventListener('click', () => {
+            this.playEpisode(episode, index);
+          });
+
+          episodeList.appendChild(episodeCard);
+        });
+      }
+
+      playEpisode(episode, index) {
+        const progress = this.checkContinueWatching(episode, 'episode');
+
+        const doPlay = (startTime = 0) => {
+          try {
+            this.animateLogo(); // NOVA LINHA - Anima a logo
+            this.currentEpisode = episode;
+            this.currentEpisodeIndex = index;
+            this.currentChannel = null;
+            this.currentMovie = null;
+            this.currentRadio = null;
+
+            // Use advanced player
+            this.setupAdvancedPlayer(episode.url, 'episode');
+
+            this.player.ready(() => {
+              if (startTime > 0) {
+                this.player.currentTime(startTime);
+              }
+              this.player.play();
+            });
+
+            document.getElementById('videoPlaceholder').style.display = 'none';
+            this.renderEpisodes();
+            this.showCustomControls();
+            this.hideRadioInfo();
+            this.hideRadioVisualDisplay();
+          } catch (error) {
+            console.error('Erro ao reproduzir episódio:', error);
+            this.showErrorOverlay('Erro ao reproduzir episódio', () => this.playEpisode(episode, index));
+          }
+        };
+
+        if (progress) {
+          this.showContinueModal(progress, doPlay, () => doPlay(0));
+        } else {
+          doPlay();
+        }
+      }
+
+      backToSeries() {
+        document.getElementById('seriesList').style.display = 'block';
+        document.getElementById('episodeList').style.display = 'none';
+      }
+
+      setupAdvancedPlayer(url, type) {
+        this.player.pause();
+        this.player.reset();
+
+        if (Hls.isSupported()) {
+          const hls = new Hls();
+          hls.loadSource(url);
+          hls.attachMedia(this.player.el().querySelector('video'));
+        } else if (this.player.el().querySelector('video').canPlayType('application/vnd.apple.mpegurl')) {
+          this.player.src(url);
+        } else {
+          this.player.src(url);
+        }
+
+        // Start progress tracking
+        this.startProgressTracking(type);
+      }
+
+      startProgressTracking(type) {
+        if (this.progressSaveInterval) {
+          clearInterval(this.progressSaveInterval);
+        }
+
+        this.progressSaveInterval = setInterval(() => {
+          if (this.player && !this.player.paused()) {
+            const currentTime = this.player.currentTime();
+            const duration = this.player.duration();
+            
+            if (duration > 0) {
+              const percentage = (currentTime / duration) * 100;
+              
+              let progressKey = '';
+              if (type === 'channel' && this.currentChannel) {
+                progressKey = `channel_${this.currentChannel}`;
+              } else if (type === 'movie' && this.currentMovie) {
+                progressKey = `movie_${this.currentMovie.id}`;
+              } else if (type === 'episode' && this.currentEpisode) {
+                progressKey = `episode_${this.currentEpisode.id}`;
+              }
+              
+              if (progressKey) {
+                this.watchProgress.set(progressKey, {
+                  currentTime: currentTime,
+                  duration: duration,
+                  percentage: percentage,
+                  timestamp: Date.now()
+                });
+                this.saveWatchProgress();
+              }
+            }
+          }
+        }, 10000); // Save every 10 seconds
+      }
+
+      checkContinueWatching(content, type) {
+        let progressKey = '';
+        if (type === 'channel') {
+          progressKey = `channel_${content}`;
+        } else if (type === 'movie') {
+          progressKey = `movie_${content.id}`;
+        } else if (type === 'episode') {
+          progressKey = `episode_${content.id}`;
+        }
+        
+        const progress = this.watchProgress.get(progressKey);
+        if (progress && progress.percentage > 5 && progress.percentage < 90) {
+          return progress;
+        }
+        return null;
+      }
+
+      showContinueModal(progress, continueAction, startAction) {
+        this.pendingPlayAction = continueAction;
+        this.pendingStartTime = progress.currentTime;
+        
+        document.getElementById('continueProgress').textContent = `${Math.round(progress.percentage)}%`;
+        document.getElementById('continueModal').style.display = 'flex';
+        
+        document.getElementById('continueFromStart').onclick = () => {
+          document.getElementById('continueModal').style.display = 'none';
+          startAction();
+        };
+        
+        document.getElementById('continueFromPosition').onclick = () => {
+          document.getElementById('continueModal').style.display = 'none';
+          continueAction(progress.currentTime);
+        };
+      }
+
+      showCustomControls() {
+        const controls = document.getElementById('customControls');
+        controls.style.display = 'flex';
+        
+        // Update button states
+        const prevBtn = document.getElementById('prevEpisodeBtn');
+        const nextBtn = document.getElementById('nextEpisodeBtn');
+        
+        prevBtn.disabled = this.currentEpisodeIndex <= 0;
+        nextBtn.disabled = this.currentEpisodeIndex >= this.episodes.length - 1;
+      }
+
+      hideCustomControls() {
+        document.getElementById('customControls').style.display = 'none';
+      }
+
+      showEpisodeNavigation() {
+        if (this.episodes.length === 0) return;
+        
+        const overlay = document.getElementById('episodeNavOverlay');
+        const title = document.getElementById('episodeNavTitle');
+        const list = document.getElementById('episodeNavList');
+        
+        title.textContent = this.currentSeries ? this.currentSeries.name : 'Episódios';
+        
+        list.innerHTML = '';
+        this.episodes.forEach((episode, index) => {
+          const item = document.createElement('div');
+          item.className = 'episode-card';
+          if (this.currentEpisode && this.currentEpisode.id === episode.id) {
+            item.classList.add('current');
+          }
+          
+          item.innerHTML = `
+            <div class="episode-number">T${episode.season}E${episode.episode_num}</div>
+            <div class="episode-title">${episode.title}</div>
+          `;
+          
+          item.addEventListener('click', () => {
+            this.playEpisode(episode, index);
+            overlay.style.display = 'none';
+          });
+          
+          list.appendChild(item);
+        });
+        
+        overlay.style.display = 'flex';
+      }
+
+      playPreviousEpisode() {
+        if (this.currentEpisodeIndex > 0) {
+          const prevEpisode = this.episodes[this.currentEpisodeIndex - 1];
+          this.playEpisode(prevEpisode, this.currentEpisodeIndex - 1);
+        }
+      }
+
+      playNextEpisode() {
+        if (this.currentEpisodeIndex < this.episodes.length - 1) {
+          const nextEpisode = this.episodes[this.currentEpisodeIndex + 1];
+          this.playEpisode(nextEpisode, this.currentEpisodeIndex + 1);
+        }
+      }
+
+      toggleFavorite(contentId) {
+        const isActive = this.favoritesBackend.toggle(contentId);
+        
+        // Update button state
+        const btn = document.querySelector(`[data-content-id="${contentId}"]`);
+        if (btn) {
+          btn.classList.toggle('active', isActive);
+        }
+        
+        // Update favorites display if we're on that tab
+        if (document.getElementById('favoritesSection').classList.contains('active')) {
+          this.renderFavorites();
+        }
+        
+        // Show feedback
+        const message = isActive ? 'Adicionado aos favoritos!' : 'Removido dos favoritos!';
+        this.showSuccess(message);
+      }
+
+      renderFavorites() {
+        const favoritesList = document.getElementById('favoritesList');
+        const favoriteIds = this.favoritesBackend.getAll();
+        
+        if (favoriteIds.length === 0) {
+          favoritesList.innerHTML = `
+            <div class="text-center p-4">
+              <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhum favorito ainda</p>
+              <p class="text-muted">Toque no ❤️ para adicionar!</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Collect favorites from all content types
+        const allFavorites = [];
+        
+        // Check channels
+        this.channels.forEach(channel => {
+          if (favoriteIds.includes(channel.id)) {
+            allFavorites.push({ ...channel, type: 'channel' });
+          }
+        });
+        
+        // Check movies
+        this.movies.forEach(movie => {
+          if (favoriteIds.includes(movie.id)) {
+            allFavorites.push({ ...movie, type: 'movie' });
+          }
+        });
+        
+        // Check series
+        this.series.forEach(series => {
+          if (favoriteIds.includes(series.id)) {
+            allFavorites.push({ ...series, type: 'series' });
+          }
+        });
+        
+        // Check radios
+        this.radios.forEach(radio => {
+          if (favoriteIds.includes(radio.id)) {
+            allFavorites.push({ ...radio, type: 'radio' });
+          }
+        });
+        
+        favoritesList.innerHTML = '';
+        allFavorites.forEach(favorite => {
+          const item = this.createContentItem(favorite, favorite.type);
+          favoritesList.appendChild(item);
+        });
+      }
+
+      performSearch(query) {
+        const results = document.getElementById('searchResults');
+        
+        if (!query || query.length < 2) {
+          results.innerHTML = `
+            <div class="text-center">
+              <i class="fas fa-search fa-2x mb-2" style="color: #666;"></i>
+              <p>Digite pelo menos 2 caracteres para buscar</p>
+            </div>
+          `;
+          return;
+        }
+
+        const searchResults = [];
+        const searchQuery = query.toLowerCase();
+
+        // Search in enabled categories
+        if (document.getElementById('searchChannels').checked) {
+          this.channels.forEach(channel => {
+            if (channel.name.toLowerCase().includes(searchQuery)) {
+              searchResults.push({ ...channel, type: 'channel' });
+            }
+          });
+        }
+
+        if (document.getElementById('searchMovies').checked) {
+          this.movies.forEach(movie => {
+            if (movie.name.toLowerCase().includes(searchQuery)) {
+              searchResults.push({ ...movie, type: 'movie' });
+            }
+          });
+        }
+
+        if (document.getElementById('searchSeries').checked) {
+          this.series.forEach(series => {
+            if (series.name.toLowerCase().includes(searchQuery)) {
+              searchResults.push({ ...series, type: 'series' });
+            }
+          });
+        }
+
+        if (document.getElementById('searchRadios').checked) {
+          this.radios.forEach(radio => {
+            if (radio.name.toLowerCase().includes(searchQuery)) {
+              searchResults.push({ ...radio, type: 'radio' });
+            }
+          });
+        }
+
+        if (searchResults.length === 0) {
+          results.innerHTML = `
+            <div class="text-center">
+              <i class="fas fa-search fa-2x mb-2" style="color: #666;"></i>
+              <p>Nenhum resultado encontrado para "${query}"</p>
+            </div>
+          `;
+          return;
+        }
+
+        results.innerHTML = '';
+        searchResults.slice(0, 20).forEach(result => { // Limit to 20 results
+          const item = this.createContentItem(result, result.type);
+          results.appendChild(item);
+        });
+
+        if (searchResults.length > 20) {
+          const moreText = document.createElement('p');
+          moreText.className = 'text-center text-muted mt-3';
+          moreText.textContent = `... e mais ${searchResults.length - 20} resultados`;
+          results.appendChild(moreText);
+        }
+      }
+
+      savePlaylist() {
+        const url = document.getElementById('playlistUrl').value;
+        
+        if (!url) {
+          this.showError('Por favor, insira uma URL válida');
+          return;
+        }
+
+        try {
+          const config = this.extractPlaylistInfo(url);
+          this.config = { ...this.config, ...config };
+          this.saveConfig();
+          
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(document.getElementById('playlistModal'));
+          modal.hide();
+          
+          // Clear form
+          document.getElementById('playlistUrl').value = '';
+          
+          // Reload content
+          this.showSuccess('Playlist salva com sucesso!');
+          this.loadChannels().then(() => {
+            this.renderChannels();
+          });
+          
+        } catch (error) {
+          this.showError(error.message);
+        }
+      }
+
+      extractPlaylistInfo(url) {
+        try {
+          const urlObj = new URL(url);
+          const server = `${urlObj.protocol}//${urlObj.host}`;
+          const username = urlObj.searchParams.get('username');
+          const password = urlObj.searchParams.get('password');
+
+          if (!username || !password) {
+            throw new Error('Username ou password não encontrado na URL');
+          }
+
+          return { server, username, password };
+        } catch (error) {
+          throw new Error('URL inválida. Verifique se contém username e password.');
+        }
+      }
+
+      shareApp() {
+        const shareUrl = window.location.href;
+        
+        if (navigator.share) {
+          navigator.share({
+            title: 'IPTV Player 3 - Canais, Filmes e Séries',
+            text: 'Assista canais brasileiros, filmes e séries online',
+            url: shareUrl
+          }).catch(console.error);
+        } else {
+          navigator.clipboard.writeText(shareUrl).then(() => {
+            this.showSuccess('Link copiado para a área de transferência!');
+          }).catch(() => {
+            this.showError('Não foi possível copiar o link');
+          });
+        }
+      }
+
+      showErrorOverlay(message, retryCallback) {
+        const overlay = document.getElementById('errorOverlay');
+        const messageEl = document.getElementById('errorMessage');
+        
+        messageEl.textContent = message;
+        this.pendingRetryAction = retryCallback;
+        overlay.style.display = 'flex';
+      }
+
+      showError(message) {
+        this.showAlert('Erro', message, 'error');
+      }
+
+      showSuccess(message) {
+        this.showAlert('Sucesso', message, 'success');
+      }
+
+      showAlert(title, message, type = 'info') {
+        // Remove existing alerts
+        document.querySelectorAll('.custom-alert, .alert-backdrop').forEach(el => el.remove());
+
+        // Create backdrop
+        const backdrop = document.createElement('div');
+        backdrop.className = 'alert-backdrop';
+        backdrop.style.cssText = `
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: rgba(0,0,0,0.8);
+          z-index: 9998;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        `;
+
+        // Create alert
+        const alert = document.createElement('div');
+        alert.className = 'custom-alert';
+        alert.style.cssText = `
+          background: var(--bg-tertiary);
+          color: white;
+          padding: 2rem;
+          border-radius: 1rem;
+          text-align: center;
+          max-width: 90%;
+          width: 400px;
+          box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        `;
+
+        const iconColor = type === 'error' ? '#EF4444' : type === 'success' ? '#10B981' : '#6B7280';
+        const iconName = type === 'error' ? 'exclamation-triangle' : type === 'success' ? 'check-circle' : 'info-circle';
+
+        alert.innerHTML = `
+          <i class="fas fa-${iconName} fa-3x mb-3" style="color: ${iconColor}"></i>
+          <h5 class="mb-3">${title}</h5>
+          <p class="mb-4">${message}</p>
+          <button class="btn btn-${type === 'error' ? 'danger' : 'success'}" onclick="this.closest('.alert-backdrop').remove()">
+            OK
+          </button>
+        `;
+
+        backdrop.appendChild(alert);
+        document.body.appendChild(backdrop);
+
+        // Auto remove after 5 seconds for success messages
+        if (type === 'success') {
+          setTimeout(() => {
+            if (backdrop.parentNode) {
+              backdrop.remove();
+            }
+          }, 5000);
+        }
+      }
+
+      async loadGames() {
+        try {
+          const games = [
+          // 'Solicitar radios! @IPTVPlayerOficial',
+          //  '🏀 Lakers x Warriors - 22:00', 
+          //  '🎾 Roland Garros - Ao Vivo',
+          //  '🏁 Fórmula 1 - Grande Prêmio',
+          //  '⚽ Champions League - 16:00',
+          //  '🏐 Vôlei Brasil x Argentina',
+          //  '🎯 Copa América - Semifinal'
+          ];
+          
+          const gamesScroll = document.getElementById('gamesScroll');
+          gamesScroll.textContent = games.join(' • ');
+        } catch (error) {
+          console.error('Erro ao carregar jogos:', error);
+        }
+      }
+    }
+
+    // Initialize app when DOM is loaded
+    let iptvApp;
+    document.addEventListener('DOMContentLoaded', () => {
+      loadTheme();
+      iptvApp = new IPTVApp();
+    });
+  </script>
+
+</body>
+</html>

@@ -40,9 +40,9 @@ const Index = () => {
             <h2 className="text-2xl font-semibold mb-4">🎧 Player IPTV Completo</h2>
             <div className="aspect-video w-full">
               <iframe 
-                src="/src/assets/iptv-player-v9-atualizado.html"
+                src="/src/assets/iptv-player-v9-silva-organizado.html"
                 className="w-full h-full rounded-lg border"
-                title="IPTV Player v9 Silva Atualizado"
+                title="IPTV Player v9 Silva - Rádios Organizadas"
                 allowFullScreen
               />
             </div>
