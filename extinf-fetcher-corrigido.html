@@ -77,10 +77,14 @@
                     const data = response.data;
                     const channelName = data.name || 'Nome não encontrado';
                     
-                    // Adicionar resultado bem-sucedido
+                    // Extrair a URL do stream da URL da API
+                    const urlParams = new URLSearchParams(trimmedUrl.split('?')[1]);
+                    const streamUrl = urlParams.get('url') || trimmedUrl;
+                    
+                    // Adicionar resultado bem-sucedido no formato EXTINF
                     const resultElement = document.createElement('div');
                     resultElement.className = 'success';
-                    resultElement.textContent = `#EXTINF:-1,${channelName} - URL: ${trimmedUrl}`;
+                    resultElement.innerHTML = `#EXTINF:-1 tvg-logo="logo_,link" group-title="radio", ${channelName}<br>${streamUrl}`;
                     
                     // Se é o primeiro resultado, limpar o loading
                     if (successCount === 0) {
