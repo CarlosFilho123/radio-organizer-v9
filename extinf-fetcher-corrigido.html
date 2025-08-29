@@ -127,31 +127,58 @@
                     </div>
                     <div id="generatorOptions" style="display: none;">
                         <div class="row">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <label for="baseUrl">URL Base:</label>
-                                <input type="text" class="form-control" id="baseUrl" value="https://backend.radiolise.com/api/v1/metadata?url=https://">
+                                <input type="text" class="form-control" id="baseUrl" value="https://backend.radiolise.com/api/v1/metadata?url=https://8231.brasilstream.com.br/stream">
+                                <small class="text-muted">O número será detectado automaticamente</small>
                             </div>
-                            <div class="col-md-4">
-                                <label for="startNumber">Número Inicial:</label>
-                                <input type="number" class="form-control" id="startNumber" value="8231" min="1">
-                            </div>
-                            <div class="col-md-4">
+                            <div class="col-md-3">
                                 <label for="quantity">Quantidade:</label>
-                                <input type="number" class="form-control" id="quantity" value="20" min="1" max="500">
+                                <input type="number" class="form-control" id="quantity" value="20" min="1" max="1000">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="generationMode">Modo:</label>
+                                <select class="form-control" id="generationMode">
+                                    <option value="sequential">Sequencial</option>
+                                    <option value="random">Aleatório</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="row mt-3">
+                        <div class="row mt-3" id="sequentialOptions">
                             <div class="col-md-6">
                                 <label for="increment">Incremento:</label>
                                 <input type="number" class="form-control" id="increment" value="2" min="1">
+                                <small class="text-muted">Valor a ser somado a cada URL</small>
                             </div>
                             <div class="col-md-6">
-                                <label for="suffix">Sufixo URL:</label>
-                                <input type="text" class="form-control" id="suffix" value=".brasilstream.com.br/stream">
+                                <label for="startFrom">Iniciar de:</label>
+                                <select class="form-control" id="startFrom">
+                                    <option value="detected">Número detectado</option>
+                                    <option value="custom">Personalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row mt-2" id="customStartDiv" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="customStart">Número inicial:</label>
+                                <input type="number" class="form-control" id="customStart" value="8231">
+                            </div>
+                        </div>
+                        <div class="row mt-3" id="randomOptions" style="display: none;">
+                            <div class="col-md-6">
+                                <label for="minRange">Faixa mínima:</label>
+                                <input type="number" class="form-control" id="minRange" value="8000">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="maxRange">Faixa máxima:</label>
+                                <input type="number" class="form-control" id="maxRange" value="9999">
                             </div>
                         </div>
                         <button class="btn btn-success mt-3" id="generateUrls">
                             <i class="fas fa-magic"></i> Gerar URLs Automaticamente
+                        </button>
+                        <button class="btn btn-info mt-3 ml-2" id="previewUrls">
+                            <i class="fas fa-eye"></i> Visualizar Exemplo
                         </button>
                     </div>
                 </div>
@@ -197,21 +224,144 @@
             options.style.display = this.checked ? 'block' : 'none';
         });
 
-        // Gerador automático de URLs
+        // Toggle opções baseado no modo
+        document.getElementById('generationMode').addEventListener('change', function() {
+            const mode = this.value;
+            const sequentialOptions = document.getElementById('sequentialOptions');
+            const randomOptions = document.getElementById('randomOptions');
+            
+            if (mode === 'sequential') {
+                sequentialOptions.style.display = 'flex';
+                randomOptions.style.display = 'none';
+            } else {
+                sequentialOptions.style.display = 'none';
+                randomOptions.style.display = 'flex';
+            }
+        });
+
+        // Toggle opção personalizada
+        document.getElementById('startFrom').addEventListener('change', function() {
+            const customDiv = document.getElementById('customStartDiv');
+            customDiv.style.display = this.value === 'custom' ? 'block' : 'none';
+        });
+
+        // Função para detectar número na URL
+        function detectNumberInUrl(url) {
+            const match = url.match(/(\d+)/g);
+            return match ? match[match.length - 1] : null;
+        }
+
+        // Função para contar dígitos
+        function countDigits(num) {
+            return num.toString().length;
+        }
+
+        // Função para gerar número aleatório com dígitos específicos
+        function generateRandomNumber(digits, min, max) {
+            if (min && max) {
+                return Math.floor(Math.random() * (max - min + 1)) + min;
+            }
+            const minVal = Math.pow(10, digits - 1);
+            const maxVal = Math.pow(10, digits) - 1;
+            return Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+        }
+
+        // Visualizar exemplo de URLs
+        document.getElementById('previewUrls').addEventListener('click', function() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const mode = document.getElementById('generationMode').value;
+            const quantity = Math.min(parseInt(document.getElementById('quantity').value) || 5, 5);
+            
+            const detectedNumber = detectNumberInUrl(baseUrl);
+            if (!detectedNumber) {
+                alert('Não foi possível detectar um número na URL base.');
+                return;
+            }
+            
+            const digits = countDigits(detectedNumber);
+            let urls = [];
+            
+            if (mode === 'sequential') {
+                const startFrom = document.getElementById('startFrom').value;
+                const increment = parseInt(document.getElementById('increment').value) || 1;
+                let startNumber = startFrom === 'detected' ? parseInt(detectedNumber) : parseInt(document.getElementById('customStart').value);
+                
+                for (let i = 0; i < quantity; i++) {
+                    const number = (startNumber + (i * increment)).toString().padStart(digits, '0');
+                    const newUrl = baseUrl.replace(detectedNumber, number);
+                    urls.push(newUrl);
+                }
+            } else {
+                const minRange = parseInt(document.getElementById('minRange').value);
+                const maxRange = parseInt(document.getElementById('maxRange').value);
+                const usedNumbers = new Set();
+                
+                for (let i = 0; i < quantity; i++) {
+                    let number;
+                    do {
+                        number = generateRandomNumber(digits, minRange, maxRange);
+                    } while (usedNumbers.has(number) && usedNumbers.size < quantity);
+                    
+                    usedNumbers.add(number);
+                    const paddedNumber = number.toString().padStart(digits, '0');
+                    const newUrl = baseUrl.replace(detectedNumber, paddedNumber);
+                    urls.push(newUrl);
+                }
+            }
+            
+            alert(`Exemplo de URLs que serão geradas (${quantity} primeiras):\n\n${urls.join('\n')}`);
+        });
+
+        // Gerador automático de URLs atualizado
         document.getElementById('generateUrls').addEventListener('click', function() {
             const baseUrl = document.getElementById('baseUrl').value;
-            const startNumber = parseInt(document.getElementById('startNumber').value);
-            const quantity = parseInt(document.getElementById('quantity').value);
-            const increment = parseInt(document.getElementById('increment').value);
-            const suffix = document.getElementById('suffix').value;
-
-            let urls = [];
-            for (let i = 0; i < quantity; i++) {
-                const number = startNumber + (i * increment);
-                const url = `${baseUrl}${number}${suffix}`;
-                urls.push(url);
+            const quantity = parseInt(document.getElementById('quantity').value) || 20;
+            const mode = document.getElementById('generationMode').value;
+            
+            const detectedNumber = detectNumberInUrl(baseUrl);
+            if (!detectedNumber) {
+                alert('Não foi possível detectar um número na URL base. Verifique se há números na URL.');
+                return;
             }
-
+            
+            const digits = countDigits(detectedNumber);
+            let urls = [];
+            
+            if (mode === 'sequential') {
+                const startFrom = document.getElementById('startFrom').value;
+                const increment = parseInt(document.getElementById('increment').value) || 1;
+                let startNumber = startFrom === 'detected' ? parseInt(detectedNumber) : parseInt(document.getElementById('customStart').value);
+                
+                for (let i = 0; i < quantity; i++) {
+                    const number = (startNumber + (i * increment)).toString().padStart(digits, '0');
+                    const newUrl = baseUrl.replace(detectedNumber, number);
+                    urls.push(newUrl);
+                }
+            } else {
+                const minRange = parseInt(document.getElementById('minRange').value);
+                const maxRange = parseInt(document.getElementById('maxRange').value);
+                const usedNumbers = new Set();
+                
+                for (let i = 0; i < quantity; i++) {
+                    let number;
+                    let attempts = 0;
+                    do {
+                        number = generateRandomNumber(digits, minRange, maxRange);
+                        attempts++;
+                    } while (usedNumbers.has(number) && attempts < 1000);
+                    
+                    if (attempts >= 1000) {
+                        alert('Não foi possível gerar números únicos suficientes. Reduza a quantidade ou aumente a faixa.');
+                        break;
+                    }
+                    
+                    usedNumbers.add(number);
+                    const paddedNumber = number.toString().padStart(digits, '0');
+                    const newUrl = baseUrl.replace(detectedNumber, paddedNumber);
+                    urls.push(newUrl);
+                }
+            }
+            
             document.getElementById('urlInput').value = urls.join('\n');
         });
 
