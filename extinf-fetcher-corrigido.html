@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EXTINF Metadata Fetcher</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .container {
+            margin-top: 30px;
+        }
+        #results {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .loading {
+            color: #007bff;
+            font-style: italic;
+        }
+        .success {
+            color: #28a745;
+            margin-bottom: 5px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center">EXTINF Metadata Fetcher</h1>
+        <div class="form-group">
+            <label for="urlInput">Insira as URLs da API:</label>
+            <textarea class="form-control" id="urlInput" rows="10" placeholder="https://backend.radiolise.com/api/v1/metadata?url=https://8231.brasilstream.com.br/stream"></textarea>
+        </div>
+        <button class="btn btn-primary btn-block" id="fetchMetadata">Buscar Metadados</button>
+        <h2 class="mt-4">Resultados</h2>
+        <div id="results" class="border"></div>
+    </div>
+
+    <script>
+        document.getElementById('fetchMetadata').addEventListener('click', function () {
+            const urlText = document.getElementById('urlInput').value.trim();
+            const urls = urlText.split('\n').filter(url => url.trim() !== '');
+            const resultsDiv = document.getElementById('results');
+            
+            // Limpar resultados anteriores
+            resultsDiv.innerHTML = '';
+            
+            if (urls.length === 0) {
+                resultsDiv.innerHTML = '<p class="text-warning">Por favor, insira pelo menos uma URL.</p>';
+                return;
+            }
+            
+            // Mostrar status de carregamento
+            resultsDiv.innerHTML = '<p class="loading">Processando URLs...</p>';
+            
+            let successCount = 0;
+            let processedCount = 0;
+            
+            urls.forEach((url, index) => {
+                const trimmedUrl = url.trim();
+                if (!trimmedUrl) return;
+                
+                axios.get(trimmedUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Content-Type': 'application/json'
+                    },
+                    timeout: 10000 // 10 segundos de timeout
+                })
+                .then(response => {
+                    const data = response.data;
+                    const channelName = data.name || 'Nome não encontrado';
+                    
+                    // Adicionar resultado bem-sucedido
+                    const resultElement = document.createElement('div');
+                    resultElement.className = 'success';
+                    resultElement.textContent = `#EXTINF:-1,${channelName} - URL: ${trimmedUrl}`;
+                    
+                    // Se é o primeiro resultado, limpar o loading
+                    if (successCount === 0) {
+                        resultsDiv.innerHTML = '';
+                    }
+                    
+                    resultsDiv.appendChild(resultElement);
+                    successCount++;
+                })
+                .catch(error => {
+                    // URLs que falham são ignoradas (não mostradas)
+                    console.error(`Erro ao buscar dados para URL: ${trimmedUrl}`, error.message);
+                })
+                .finally(() => {
+                    processedCount++;
+                    
+                    // Quando todas as URLs forem processadas
+                    if (processedCount === urls.length) {
+                        if (successCount === 0) {
+                            resultsDiv.innerHTML = '<p class="text-danger">Nenhuma URL retornou dados válidos.</p>';
+                        } else {
+                            const summaryElement = document.createElement('div');
+                            summaryElement.className = 'mt-3 text-info';
+                            summaryElement.innerHTML = `<strong>Processamento concluído: ${successCount} de ${urls.length} URLs bem-sucedidas.</strong>`;
+                            resultsDiv.appendChild(summaryElement);
+                        }
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
