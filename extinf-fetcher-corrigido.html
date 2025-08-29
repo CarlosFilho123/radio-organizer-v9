@@ -3,75 +3,345 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EXTINF Metadata Fetcher</title>
+    <title>EXTINF Metadata Fetcher Pro</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         body {
-            background-color: #f8f9fa;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         .container {
-            margin-top: 30px;
+            margin-top: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            border: none;
+        }
+        .card-header {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 20px;
+        }
+        .card-header h1 {
+            margin: 0;
+            font-weight: 700;
+        }
+        .card-body {
+            padding: 30px;
         }
         #results {
-            background-color: #ffffff;
-            border: 1px solid #dee2e6;
-            padding: 10px;
-            max-height: 400px;
+            background-color: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 500px;
             overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
         }
         .loading {
             color: #007bff;
             font-style: italic;
+            text-align: center;
+            padding: 20px;
         }
         .success {
             color: #28a745;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #d4edda;
+            border-radius: 5px;
+            border-left: 4px solid #28a745;
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,123,255,0.4);
+        }
+        .form-control {
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 15px rgba(0,123,255,0.2);
+        }
+        .generator-section {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 2px solid #e9ecef;
+        }
+        .form-check-input:checked {
+            background-color: #28a745;
+            border-color: #28a745;
+        }
+        .progress {
+            border-radius: 10px;
+            height: 8px;
+            margin-top: 10px;
+        }
+        .json-output {
+            background: #2d3748;
+            color: #68d391;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
     <div class="container">
-        <h1 class="text-center">EXTINF Metadata Fetcher</h1>
-        <div class="form-group">
-            <label for="urlInput">Insira as URLs da API:</label>
-            <textarea class="form-control" id="urlInput" rows="10" placeholder="https://backend.radiolise.com/api/v1/metadata?url=https://8231.brasilstream.com.br/stream"></textarea>
+        <div class="card">
+            <div class="card-header text-center">
+                <h1><i class="fas fa-radio"></i> EXTINF Metadata Fetcher Pro</h1>
+                <p class="mb-0">Processador avançado de metadados de rádio</p>
+            </div>
+            <div class="card-body">
+                <!-- Gerador Automático -->
+                <div class="generator-section">
+                    <h5><i class="fas fa-cogs"></i> Gerador Automático de URLs</h5>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="autoGenerator">
+                        <label class="form-check-label" for="autoGenerator">
+                            <strong>Ativar geração automática de URLs</strong>
+                        </label>
+                    </div>
+                    <div id="generatorOptions" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="baseUrl">URL Base:</label>
+                                <input type="text" class="form-control" id="baseUrl" value="https://backend.radiolise.com/api/v1/metadata?url=https://">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="startNumber">Número Inicial:</label>
+                                <input type="number" class="form-control" id="startNumber" value="8231" min="1">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="quantity">Quantidade:</label>
+                                <input type="number" class="form-control" id="quantity" value="20" min="1" max="500">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-6">
+                                <label for="increment">Incremento:</label>
+                                <input type="number" class="form-control" id="increment" value="2" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="suffix">Sufixo URL:</label>
+                                <input type="text" class="form-control" id="suffix" value=".brasilstream.com.br/stream">
+                            </div>
+                        </div>
+                        <button class="btn btn-success mt-3" id="generateUrls">
+                            <i class="fas fa-magic"></i> Gerar URLs Automaticamente
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Manual -->
+                <div class="form-group">
+                    <label for="urlInput"><i class="fas fa-link"></i> URLs da API ou Blocos EXTINF:</label>
+                    <textarea class="form-control" id="urlInput" rows="12" placeholder="Cole aqui:&#10;&#10;URLs simples:&#10;https://backend.radiolise.com/api/v1/metadata?url=https://8231.brasilstream.com.br/stream&#10;&#10;Ou blocos EXTINF:&#10;#EXTM3U&#10;#EXTINF:-1 tvg-logo=&quot;logo_,link&quot; group-title=&quot;radio&quot;, channel&#10;https://backend.radiolise.com/api/v1/metadata?url=https://8231.brasilstream.com.br/stream"></textarea>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <button class="btn btn-primary btn-block" id="fetchMetadata">
+                            <i class="fas fa-download"></i> Buscar Metadados
+                        </button>
+                    </div>
+                    <div class="col-md-6">
+                        <button class="btn btn-secondary btn-block" id="exportJson">
+                            <i class="fas fa-file-export"></i> Exportar JSON
+                        </button>
+                    </div>
+                </div>
+
+                <div class="progress mt-3" style="display: none;" id="progressBar">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+
+                <h4 class="mt-4"><i class="fas fa-list"></i> Resultados EXTINF</h4>
+                <div id="results"></div>
+
+                <h4 class="mt-4"><i class="fas fa-code"></i> Saída JSON</h4>
+                <div id="jsonResults" class="json-output"></div>
+            </div>
         </div>
-        <button class="btn btn-primary btn-block" id="fetchMetadata">Buscar Metadados</button>
-        <h2 class="mt-4">Resultados</h2>
-        <div id="results" class="border"></div>
     </div>
 
     <script>
+        let jsonData = [];
+
+        // Toggle gerador automático
+        document.getElementById('autoGenerator').addEventListener('change', function() {
+            const options = document.getElementById('generatorOptions');
+            options.style.display = this.checked ? 'block' : 'none';
+        });
+
+        // Gerador automático de URLs
+        document.getElementById('generateUrls').addEventListener('click', function() {
+            const baseUrl = document.getElementById('baseUrl').value;
+            const startNumber = parseInt(document.getElementById('startNumber').value);
+            const quantity = parseInt(document.getElementById('quantity').value);
+            const increment = parseInt(document.getElementById('increment').value);
+            const suffix = document.getElementById('suffix').value;
+
+            let urls = [];
+            for (let i = 0; i < quantity; i++) {
+                const number = startNumber + (i * increment);
+                const url = `${baseUrl}${number}${suffix}`;
+                urls.push(url);
+            }
+
+            document.getElementById('urlInput').value = urls.join('\n');
+        });
+
+        // Função para extrair URLs de blocos EXTINF
+        function extractUrlsFromM3U(text) {
+            const lines = text.split('\n');
+            const urls = [];
+            
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (line && !line.startsWith('#') && (line.startsWith('http') || line.startsWith('https'))) {
+                    urls.push(line);
+                }
+            }
+            return urls;
+        }
+
+        // Função para gerar ID único baseado no nome
+        function generateId(name) {
+            return name.toLowerCase()
+                .replace(/\s+/g, '')
+                .replace(/[^\w]/g, '')
+                .substring(0, 20);
+        }
+
+        // Função para extrair cidade do nome
+        function extractCity(name) {
+            const cityPatterns = [
+                /(.+?)\s+\d+\.?\d*\s*(FM|AM)/i,
+                /(.+?)\s+(FM|AM)/i,
+                /Radio\s+(.+?)\s+/i
+            ];
+            
+            for (const pattern of cityPatterns) {
+                const match = name.match(pattern);
+                if (match) {
+                    return match[1].trim();
+                }
+            }
+            return null;
+        }
+
+        // Função para extrair estado do nome
+        function extractState(name) {
+            const statePatterns = {
+                'AC': ['acre'],
+                'AL': ['alagoas'],
+                'AP': ['amapá', 'amapa'],
+                'AM': ['amazonas'],
+                'BA': ['bahia'],
+                'CE': ['ceará', 'ceara'],
+                'DF': ['brasília', 'brasilia'],
+                'ES': ['espírito santo', 'espirito santo'],
+                'GO': ['goiás', 'goias'],
+                'MA': ['maranhão', 'maranhao'],
+                'MT': ['mato grosso'],
+                'MS': ['mato grosso do sul'],
+                'MG': ['minas gerais'],
+                'PA': ['pará', 'para'],
+                'PB': ['paraíba', 'paraiba'],
+                'PR': ['paraná', 'parana'],
+                'PE': ['pernambuco'],
+                'PI': ['piauí', 'piaui'],
+                'RJ': ['rio de janeiro'],
+                'RN': ['rio grande do norte'],
+                'RS': ['rio grande do sul'],
+                'RO': ['rondônia', 'rondonia'],
+                'RR': ['roraima'],
+                'SC': ['santa catarina'],
+                'SP': ['são paulo', 'sao paulo'],
+                'SE': ['sergipe'],
+                'TO': ['tocantins']
+            };
+
+            const lowerName = name.toLowerCase();
+            for (const [code, names] of Object.entries(statePatterns)) {
+                for (const stateName of names) {
+                    if (lowerName.includes(stateName)) {
+                        return code;
+                    }
+                }
+            }
+            return null;
+        }
+
+        // Função para extrair frequência
+        function extractFrequency(name) {
+            const freqMatch = name.match(/(\d+\.?\d*)\s*(FM|AM)/i);
+            return freqMatch ? `${freqMatch[1]} ${freqMatch[2].toUpperCase()}` : null;
+        }
+
+        // Função principal de processamento
         document.getElementById('fetchMetadata').addEventListener('click', function () {
             const urlText = document.getElementById('urlInput').value.trim();
-            const urls = urlText.split('\n').filter(url => url.trim() !== '');
+            const urls = extractUrlsFromM3U(urlText);
             const resultsDiv = document.getElementById('results');
+            const jsonResultsDiv = document.getElementById('jsonResults');
+            const progressBar = document.getElementById('progressBar');
+            const progressBarInner = progressBar.querySelector('.progress-bar');
             
             // Limpar resultados anteriores
             resultsDiv.innerHTML = '';
+            jsonResultsDiv.innerHTML = '';
+            jsonData = [];
             
             if (urls.length === 0) {
-                resultsDiv.innerHTML = '<p class="text-warning">Por favor, insira pelo menos uma URL.</p>';
+                resultsDiv.innerHTML = '<p class="text-warning">Por favor, insira pelo menos uma URL válida.</p>';
                 return;
             }
             
+            // Mostrar barra de progresso
+            progressBar.style.display = 'block';
+            progressBarInner.style.width = '0%';
+            
             // Mostrar status de carregamento
-            resultsDiv.innerHTML = '<p class="loading">Processando URLs...</p>';
+            resultsDiv.innerHTML = `<p class="loading"><i class="fas fa-spinner fa-spin"></i> Processando ${urls.length} URLs...</p>`;
             
             let successCount = 0;
             let processedCount = 0;
             
             urls.forEach((url, index) => {
                 const trimmedUrl = url.trim();
-                if (!trimmedUrl) return;
+                if (!trimmedUrl || !trimmedUrl.startsWith('http')) return;
                 
                 axios.get(trimmedUrl, {
                     headers: {
                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                         'Content-Type': 'application/json'
                     },
-                    timeout: 10000 // 10 segundos de timeout
+                    timeout: 15000
                 })
                 .then(response => {
                     const data = response.data;
@@ -81,7 +351,23 @@
                     const urlParams = new URLSearchParams(trimmedUrl.split('?')[1]);
                     const streamUrl = urlParams.get('url') || trimmedUrl;
                     
-                    // Adicionar resultado bem-sucedido no formato EXTINF
+                    // Gerar dados JSON
+                    const radioData = {
+                        id: generateId(channelName),
+                        name: channelName,
+                        type: "radio",
+                        url: streamUrl,
+                        icon: data.icon || "",
+                        city: extractCity(channelName) || "",
+                        state: extractState(channelName) || "",
+                        category: extractState(channelName)?.toLowerCase() || "",
+                        frequency: extractFrequency(channelName) || "",
+                        letter: channelName.charAt(0).toUpperCase()
+                    };
+                    
+                    jsonData.push(radioData);
+                    
+                    // Adicionar resultado EXTINF
                     const resultElement = document.createElement('div');
                     resultElement.className = 'success';
                     resultElement.innerHTML = `#EXTINF:-1 tvg-logo="logo_,link" group-title="radio", ${channelName}<br>${streamUrl}`;
@@ -93,27 +379,52 @@
                     
                     resultsDiv.appendChild(resultElement);
                     successCount++;
+                    
+                    // Atualizar JSON em tempo real
+                    jsonResultsDiv.innerHTML = `<pre>${JSON.stringify(jsonData, null, 2)}</pre>`;
                 })
                 .catch(error => {
-                    // URLs que falham são ignoradas (não mostradas)
                     console.error(`Erro ao buscar dados para URL: ${trimmedUrl}`, error.message);
                 })
                 .finally(() => {
                     processedCount++;
                     
+                    // Atualizar barra de progresso
+                    const progress = (processedCount / urls.length) * 100;
+                    progressBarInner.style.width = `${progress}%`;
+                    
                     // Quando todas as URLs forem processadas
                     if (processedCount === urls.length) {
+                        progressBar.style.display = 'none';
+                        
                         if (successCount === 0) {
                             resultsDiv.innerHTML = '<p class="text-danger">Nenhuma URL retornou dados válidos.</p>';
                         } else {
                             const summaryElement = document.createElement('div');
-                            summaryElement.className = 'mt-3 text-info';
-                            summaryElement.innerHTML = `<strong>Processamento concluído: ${successCount} de ${urls.length} URLs bem-sucedidas.</strong>`;
+                            summaryElement.className = 'mt-3 alert alert-info';
+                            summaryElement.innerHTML = `<i class="fas fa-check-circle"></i> <strong>Processamento concluído:</strong> ${successCount} de ${urls.length} URLs processadas com sucesso.`;
                             resultsDiv.appendChild(summaryElement);
                         }
                     }
                 });
             });
+        });
+
+        // Exportar JSON
+        document.getElementById('exportJson').addEventListener('click', function() {
+            if (jsonData.length === 0) {
+                alert('Nenhum dado para exportar. Execute a busca primeiro.');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(jsonData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'radios-metadata.json';
+            link.click();
+            URL.revokeObjectURL(url);
         });
     </script>
 </body>
